@@ -10,8 +10,26 @@ export function abrirBanco(caminho) {
     PRAGMA journal_mode = WAL;
     PRAGMA foreign_keys = ON;
 
+    CREATE TABLE IF NOT EXISTS lojas (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      nome       TEXT NOT NULL,
+      email      TEXT NOT NULL UNIQUE COLLATE NOCASE,
+      senha_hash TEXT NOT NULL,
+      taxas      TEXT NOT NULL DEFAULT '${JSON.stringify(TAXAS_PADRAO)}',
+      criado_em  TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    -- Guardamos só o hash do token: quem ler o banco não consegue usar as sessões.
+    CREATE TABLE IF NOT EXISTS sessoes (
+      token_hash TEXT PRIMARY KEY,
+      loja_id    INTEGER NOT NULL REFERENCES lojas(id) ON DELETE CASCADE,
+      expira_em  TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_sessoes_loja ON sessoes(loja_id);
+
     CREATE TABLE IF NOT EXISTS anuncios (
       id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+      loja_id            INTEGER REFERENCES lojas(id) ON DELETE CASCADE,
       nome               TEXT    NOT NULL,
       comentario         TEXT    NOT NULL DEFAULT '',
       imagem             TEXT,
@@ -49,13 +67,14 @@ export function abrirBanco(caminho) {
       PRIMARY KEY (anuncio_id, tag)
     );
     CREATE INDEX IF NOT EXISTS idx_tags_tag ON anuncio_tags(tag);
-
-    CREATE TABLE IF NOT EXISTS config (
-      chave TEXT PRIMARY KEY,
-      valor TEXT NOT NULL
-    );
   `);
-  const ins = db.prepare('INSERT OR IGNORE INTO config (chave, valor) VALUES (?, ?)');
-  ins.run('taxas', JSON.stringify(TAXAS_PADRAO));
+
+  // Bancos criados antes das contas não tinham loja_id: adiciona a coluna.
+  // Esses anúncios "sem dono" são adotados pela primeira loja cadastrada.
+  const colunas = db.prepare('PRAGMA table_info(anuncios)').all().map((c) => c.name);
+  if (!colunas.includes('loja_id')) {
+    db.exec('ALTER TABLE anuncios ADD COLUMN loja_id INTEGER REFERENCES lojas(id) ON DELETE CASCADE');
+  }
+  db.exec('CREATE INDEX IF NOT EXISTS idx_anuncios_loja ON anuncios(loja_id, atualizado_em)');
   return db;
 }

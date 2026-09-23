@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Entrar · PrecificaShop</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%230f766e'/><text x='16' y='22' font-size='16' text-anchor='middle' fill='white' font-family='Arial' font-weight='700'>%24</text></svg>" />
+  <link rel="stylesheet" href="login.css" />
+</head>
+<body>
+  <main class="acesso">
+    <section class="vitrine" aria-hidden="true">
+      <div class="marca"><span class="logo">$</span> Precifica<b>Shop</b></div>
+      <div class="vitrine-texto">
+        <h1>Preço certo,<br />lucro no bolso.</h1>
+        <p>Calcule o preço de cada anúncio com todas as taxas da Shopee e guarde tudo na conta da sua loja.</p>
+      </div>
+      <div class="etiqueta">
+        <small>Preço para cadastrar</small>
+        <strong>R$ 33,61</strong>
+        <span>Lucro R$ 5,05 · margem 15%</span>
+      </div>
+    </section>
+
+    <section class="painel-acesso">
+      <div class="cartao">
+        <div class="abas" role="tablist">
+          <button type="button" role="tab" id="aba-entrar" aria-selected="true" data-aba="entrar">Entrar</button>
+          <button type="button" role="tab" id="aba-cadastro" aria-selected="false" data-aba="cadastro">Criar conta</button>
+        </div>
+
+        <form id="form-entrar" novalidate>
+          <h2>Acesse sua loja</h2>
+          <label class="campo"><span>Email</span>
+            <input id="entrar-email" name="email" type="email" autocomplete="username" required />
+          </label>
+          <label class="campo"><span>Senha</span>
+            <div class="senha">
+              <input id="entrar-senha" name="senha" type="password" autocomplete="current-password" required />
+              <button type="button" class="ver-senha" aria-label="Mostrar senha">Ver</button>
+            </div>
+          </label>
+          <p class="erro" role="alert" hidden></p>
+          <button class="btn" type="submit">Entrar</button>
+          <p class="rodape">Esqueceu a senha? Peça para quem administra o sistema redefinir.</p>
+        </form>
+
+        <form id="form-cadastro" novalidate hidden>
+          <h2>Crie a conta da sua loja</h2>
+          <label class="campo"><span>Nome da loja</span>
+            <input id="cad-nome" name="nome" type="text" autocomplete="organization" maxlength="80" required />
+          </label>
+          <label class="campo"><span>Email</span>
+            <input id="cad-email" name="email" type="email" autocomplete="email" required />
+          </label>
+          <label class="campo"><span>Senha <small>(mínimo 8 caracteres)</small></span>
+            <div class="senha">
+              <input id="cad-senha" name="senha" type="password" autocomplete="new-password" minlength="8" required />
+              <button type="button" class="ver-senha" aria-label="Mostrar senha">Ver</button>
+            </div>
+          </label>
+          <label class="campo"><span>Confirme a senha</span>
+            <input id="cad-senha2" name="senha2" type="password" autocomplete="new-password" required />
+          </label>
+          <p class="erro" role="alert" hidden></p>
+          <button class="btn" type="submit">Criar conta</button>
+          <p class="rodape">Cada loja vê apenas os próprios anúncios.</p>
+        </form>
+      </div>
+    </section>
+  </main>
+  <script type="module" src="login.js"></script>
+</body>
+</html>

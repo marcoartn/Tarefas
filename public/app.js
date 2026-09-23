@@ -31,6 +31,10 @@ async function api(caminho, opcoes = {}) {
     headers: { 'Content-Type': 'application/json' },
     body: opcoes.body ? JSON.stringify(opcoes.body) : undefined,
   });
+  if (res.status === 401) {
+    location.replace('/login.html');
+    throw new Error('Sessão expirada. Faça login de novo.');
+  }
   if (res.status === 204) return null;
   const dados = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(dados.erro || `Erro ${res.status}`);
@@ -431,6 +435,14 @@ function reduzirImagem(arquivo, lado = 320) {
 
 async function iniciar() {
   ligarEventos();
+  $('#sair').addEventListener('click', async () => {
+    try { await api('/auth/logout', { method: 'POST' }); } finally { location.replace('/login.html'); }
+  });
+  try {
+    const loja = await api('/auth/eu');
+    $('#loja-nome').textContent = loja.nome;
+    $('#loja-nome').title = loja.email;
+  } catch { return; }
   try { estado.taxas = await api('/config'); } catch { toast('Servidor indisponível — usando taxas padrão.', true); }
   preencherFormulario(null);
   definirEdicao(null);
