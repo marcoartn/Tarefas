@@ -1,0 +1,13 @@
+{
+  "name": "precificador-shopee",
+  "version": "1.0.0",
+  "description": "Calculadora de precificação para Shopee com anúncios salvos em SQLite",
+  "type": "module",
+  "private": true,
+  "engines": { "node": ">=22.5" },
+  "scripts": {
+    "start": "node --no-warnings=ExperimentalWarning server.js",
+    "dev": "node --no-warnings=ExperimentalWarning --watch server.js",
+    "test": "node --no-warnings=ExperimentalWarning --test"
+  }
+}

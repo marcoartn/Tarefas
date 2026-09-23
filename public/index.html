@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Precificador Shopee</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%230f766e'/><text x='16' y='22' font-size='16' text-anchor='middle' fill='white' font-family='Arial' font-weight='700'>%24</text></svg>" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topo">
+    <div class="marca"><span class="logo">$</span> Precifica<b>Shop</b></div>
+    <button class="btn-icone" id="abrir-config" title="Taxas da Shopee">⚙ Taxas</button>
+  </header>
+
+  <main class="pagina">
+    <section class="calculadora">
+      <!-- ENTRADAS -->
+      <div class="painel entradas">
+        <div class="linha-entre">
+          <h2>Tipo de vendedor</h2>
+          <div class="segmento" id="tipo-vendedor">
+            <button data-v="cpf" class="ativo">CPF</button>
+            <button data-v="cnpj">CNPJ</button>
+          </div>
+        </div>
+        <p class="aviso" id="aviso-cpf"></p>
+
+        <label class="campo">
+          <span>Custo do produto <i class="dica" title="Quanto você paga por unidade. Use o multiplicador para kits.">?</i></span>
+          <div class="entrada-com-prefixo">
+            <em>R$</em><input id="custoProduto" type="text" inputmode="decimal" placeholder="0,00" />
+            <div class="qtd">
+              <button type="button" data-qtd="-1" aria-label="Diminuir">−</button>
+              <strong id="quantidade">1x</strong>
+              <button type="button" data-qtd="1" aria-label="Aumentar">+</button>
+            </div>
+          </div>
+        </label>
+
+        <div class="duas-colunas">
+          <label class="campo">
+            <span>Imposto <i class="dica" title="Alíquota sobre o preço de venda (ex.: Simples Nacional).">?</i></span>
+            <div class="entrada-com-prefixo"><em>%</em><input id="impostoPct" type="text" inputmode="decimal" placeholder="0" /></div>
+          </label>
+          <label class="campo">
+            <span>Custos variáveis <i class="dica" title="Embalagem, etiqueta, brinde… por venda.">?</i></span>
+            <div class="entrada-com-prefixo"><em>R$</em><input id="custosVariaveis" type="text" inputmode="decimal" placeholder="0,00" /></div>
+          </label>
+        </div>
+
+        <details class="extras" id="extras-box">
+          <summary>Custos extras <small>(opcional)</small> <b id="extras-contagem"></b></summary>
+          <div id="extras-lista"></div>
+          <button type="button" class="btn-link" id="add-extra">+ Adicionar custo extra</button>
+        </details>
+
+        <h2>Modo de precificação</h2>
+        <div class="abas" id="modo">
+          <button data-v="margem" class="ativo">Por margem</button>
+          <button data-v="preco">Por preço de venda</button>
+          <button data-v="lucro">Por lucro desejado</button>
+        </div>
+
+        <div class="modo-campo" data-modo="margem">
+          <label class="campo">
+            <span>Margem de lucro <i class="dica" title="Percentual do preço de venda que sobra como lucro líquido.">?</i></span>
+            <div class="slider">
+              <input id="margemRange" type="range" min="0" max="60" step="0.5" value="0" />
+              <div class="entrada-com-prefixo curta"><input id="margemPct" type="text" inputmode="decimal" value="0" /><em>%</em></div>
+            </div>
+          </label>
+        </div>
+        <div class="modo-campo" data-modo="preco" hidden>
+          <label class="campo"><span>Preço de venda</span>
+            <div class="entrada-com-prefixo"><em>R$</em><input id="precoVenda" type="text" inputmode="decimal" placeholder="0,00" /></div>
+          </label>
+        </div>
+        <div class="modo-campo" data-modo="lucro" hidden>
+          <label class="campo"><span>Lucro desejado por venda</span>
+            <div class="entrada-com-prefixo"><em>R$</em><input id="lucroDesejado" type="text" inputmode="decimal" placeholder="0,00" /></div>
+          </label>
+        </div>
+      </div>
+
+      <!-- RESULTADO -->
+      <div class="painel resultado">
+        <div class="destaque" id="destaque">
+          <small id="rotulo-preco">Preço para cadastrar na Shopee</small>
+          <div class="preco-grande"><span id="preco-final">R$ 0,00</span>
+            <button class="btn-icone claro" id="copiar" title="Copiar preço">⧉</button>
+          </div>
+          <div class="kpis">
+            <div><small>Lucro líquido</small><strong id="kpi-lucro">R$ 0,00</strong></div>
+            <div><small>Margem real</small><strong id="kpi-margem">0%</strong></div>
+            <div><small>Markup</small><strong id="kpi-markup">—</strong></div>
+          </div>
+        </div>
+        <p class="erro" id="erro-calculo" hidden></p>
+
+        <h3>Detalhamento</h3>
+        <div class="barra" id="barra" aria-hidden="true"></div>
+        <table class="detalhe" id="detalhe"></table>
+
+        <div class="identidade">
+          <label class="foto" id="foto" title="Adicionar foto">
+            <input type="file" accept="image/*" id="foto-input" hidden />
+            <img id="foto-preview" alt="" hidden />
+            <span id="foto-placeholder">📷<br /><small>Foto</small></span>
+          </label>
+          <input id="nome" class="nome" type="text" maxlength="200" placeholder="Nome do anúncio…" />
+        </div>
+        <label class="campo"><span>Comentário</span>
+          <textarea id="comentario" rows="2" maxlength="2000" placeholder="Anotações sobre este anúncio (opcional)"></textarea>
+        </label>
+        <label class="campo"><span>Tags</span>
+          <div class="tags-entrada" id="tags-entrada">
+            <input id="tag-input" type="text" list="tags-sugestoes" placeholder="Digite e aperte Enter" />
+            <datalist id="tags-sugestoes"></datalist>
+          </div>
+        </label>
+
+        <div class="acoes">
+          <button class="btn primario" id="salvar">Salvar precificação</button>
+          <button class="btn" id="limpar">Limpar</button>
+        </div>
+        <p class="editando" id="editando" hidden>Editando anúncio <b id="editando-nome"></b> · <button class="btn-link" id="cancelar-edicao">cancelar</button></p>
+      </div>
+    </section>
+
+    <!-- SALVOS -->
+    <section class="salvos">
+      <div class="linha-entre">
+        <h2 class="titulo-salvos">Anúncios salvos <span id="total">(0)</span></h2>
+        <div class="segmento" id="visao">
+          <button data-v="lista" class="ativo" title="Lista">☰</button>
+          <button data-v="grade" title="Grade">▦</button>
+        </div>
+      </div>
+      <div class="filtros">
+        <span>Filtrar por tag:</span>
+        <div class="segmento pequeno" id="modo-tag">
+          <button data-v="contem" class="ativo" title="Anúncios que têm todas as tags marcadas (podem ter outras)">Contém</button>
+          <button data-v="somente" title="Anúncios cujas tags são exatamente as marcadas">Somente</button>
+        </div>
+        <div class="chips" id="chips-tags"></div>
+      </div>
+      <input id="busca" class="busca" type="search" placeholder="Buscar anúncio por nome ou comentário…" />
+      <div id="resumo" class="resumo"></div>
+      <div id="lista" class="lista"></div>
+    </section>
+  </main>
+
+  <dialog id="config">
+    <form method="dialog" id="form-config">
+      <h2>Taxas da Shopee</h2>
+      <p class="sutil">Confira as regras atuais na Central do Vendedor e ajuste aqui. Novos cálculos usam estes valores; cada anúncio salvo guarda as taxas usadas nele.</p>
+      <label class="campo"><span>Comissão + frete (%)</span><input name="comissaoPct" type="text" inputmode="decimal" /></label>
+      <label class="campo"><span>Teto da comissão por item (R$)</span><input name="comissaoTeto" type="text" inputmode="decimal" /></label>
+      <label class="campo"><span>Taxa fixa por item (R$)</span><input name="taxaFixa" type="text" inputmode="decimal" /></label>
+      <label class="campo"><span>Taxa extra vendedor CPF (R$)</span><input name="taxaCpf" type="text" inputmode="decimal" /></label>
+      <div class="acoes">
+        <button class="btn primario" value="salvar">Salvar taxas</button>
+        <button class="btn" value="cancelar" formnovalidate>Cancelar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
