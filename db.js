@@ -1,7 +1,15 @@
 import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { dirname, join } from 'node:path';
 import { TAXAS_PADRAO } from './public/calc.js';
+
+// Onde fica o arquivo do banco: DB_PATH, senão o volume do Railway
+// (que ele informa em RAILWAY_VOLUME_MOUNT_PATH), senão ./data do projeto.
+export function caminhoBanco(raizProjeto, env = process.env) {
+  if (env.DB_PATH) return env.DB_PATH;
+  if (env.RAILWAY_VOLUME_MOUNT_PATH) return join(env.RAILWAY_VOLUME_MOUNT_PATH, 'precificador.db');
+  return join(raizProjeto, 'data', 'precificador.db');
+}
 
 export function abrirBanco(caminho) {
   if (caminho !== ':memory:') mkdirSync(dirname(caminho), { recursive: true });

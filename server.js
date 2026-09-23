@@ -2,7 +2,7 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { abrirBanco } from './db.js';
+import { abrirBanco, caminhoBanco } from './db.js';
 import { criarRepo, criarContas, ErroValidacao, ErroConflito } from './repo.js';
 import { criarLimitador, DURACAO_SESSAO_DIAS } from './auth.js';
 
@@ -170,7 +170,7 @@ export function criarApp({ repo, contas }) {
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const porta = Number(process.env.PORT) || 3000;
-  const banco = process.env.DB_PATH || join(RAIZ, 'data', 'precificador.db');
+  const banco = caminhoBanco(RAIZ);
   const db = abrirBanco(banco);
   criarApp({ repo: criarRepo(db), contas: criarContas(db) }).listen(porta, () => {
     console.log(`Precificador rodando em http://localhost:${porta}  (banco: ${banco})`);

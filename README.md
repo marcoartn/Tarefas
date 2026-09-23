@@ -9,6 +9,7 @@ npm test           # testes do cálculo e da API
 ```
 
 O banco fica em `data/precificador.db` (mude com `DB_PATH=...`, e a porta com `PORT=...`).
+No Railway, basta ligar um Volume ao serviço: o app usa o caminho do volume automaticamente.
 Para fazer backup, basta copiar esse arquivo.
 
 ## Contas das lojas

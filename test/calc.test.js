@@ -66,3 +66,10 @@ test('arredondamento de centavos nunca entrega margem abaixo da pedida', () => {
     }
   }
 });
+
+test('caminho do banco: DB_PATH > volume do Railway > ./data', async () => {
+  const { caminhoBanco } = await import('../db.js');
+  assert.equal(caminhoBanco('/app', { DB_PATH: '/x/a.db', RAILWAY_VOLUME_MOUNT_PATH: '/data' }), '/x/a.db');
+  assert.equal(caminhoBanco('/app', { RAILWAY_VOLUME_MOUNT_PATH: '/data' }), '/data/precificador.db');
+  assert.equal(caminhoBanco('/app', {}), '/app/data/precificador.db');
+});
