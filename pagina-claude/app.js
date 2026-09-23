@@ -1009,8 +1009,8 @@ function reduzirImagem(arquivo, lado = 320) {
 function iniciar() {
   $('#ano').textContent = new Date().getFullYear();
   ligarEventos();
-  // Exemplo para a calculadora não abrir vazia; "Limpar" zera tudo.
-  preencherFormulario({ custoProduto: 12, impostoPct: 4, custosVariaveis: 1.5, margemPct: 15 });
+  // A calculadora abre zerada; só mostra valores quando o usuário digita ou abre um anúncio.
+  preencherFormulario(null);
   definirEdicao(null);
   $('#salvar').disabled = true;
 
