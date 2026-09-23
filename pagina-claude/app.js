@@ -111,7 +111,6 @@ function renderResultado() {
   $('#rotulo-preco').textContent = estado.modo === 'preco' ? 'Preço de venda informado' : 'Preço para cadastrar na Shopee';
   $('#kpi-lucro').textContent = brl(r.lucro);
   $('#kpi-margem').textContent = pct2(r.margemReal);
-  $('#kpi-markup').textContent = r.markup ? `${r.markup.toLocaleString('pt-BR')}x` : '—';
   $('#destaque').classList.toggle('negativo', r.lucro < 0);
   $('#erro-calculo').hidden = !r.erro;
   $('#erro-calculo').textContent = r.erro || '';

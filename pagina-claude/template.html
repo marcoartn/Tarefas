@@ -139,7 +139,7 @@ input, textarea, select { font: inherit; color: inherit; }
 .preco-grande { display: flex; align-items: center; gap: 10px; font-size: clamp(28px, 6vw, 36px); font-weight: 700; margin: 4px 0 12px; letter-spacing: -.02em; }
 .btn-copiar { background: rgba(255,255,255,.16); border: 0; color: #fff; border-radius: 8px; padding: 4px 10px; font-size: 12px; font-weight: 700; letter-spacing: 0; }
 .btn-copiar:hover { background: rgba(255,255,255,.26); }
-.kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
 .kpis div { background: rgba(255,255,255,.12); border-radius: 8px; padding: 6px 10px; min-width: 0; }
 .kpis small { display: block; text-transform: none; letter-spacing: 0; }
 .kpis strong { font-size: 15px; }
@@ -397,7 +397,6 @@ input, textarea, select { font: inherit; color: inherit; }
         <div class="kpis">
           <div><small>Lucro líquido</small><strong id="kpi-lucro" class="num">R$ 0,00</strong></div>
           <div><small>Margem real</small><strong id="kpi-margem" class="num">0%</strong></div>
-          <div><small>Markup</small><strong id="kpi-markup" class="num">—</strong></div>
         </div>
         <p class="alerta-margem" id="alerta-margem" role="status" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17h.01"/></svg><span id="alerta-margem-txt"></span></p>
       </div>
