@@ -53,10 +53,12 @@ export function detalharPreco(preco, e) {
     custo: r2(x.tipo === 'percentual' ? preco * x.valor / 100 : x.valor),
   }));
   const extrasTotal = r2(extras.reduce((s, x) => s + x.custo, 0));
-  const taxaFixa = preco > 0 ? taxas.taxaFixa : 0;
-  const taxaCpf = preco > 0 && e.tipoVendedor === 'cpf' ? taxas.taxaCpf : 0;
+  // Taxas por item aparecem sempre, mesmo antes de haver preço: toda venda paga.
+  const taxaFixa = taxas.taxaFixa;
+  const taxaCpf = e.tipoVendedor === 'cpf' ? taxas.taxaCpf : 0;
   const totalCustos = r2(custoProdutoTotal + e.custosVariaveis + extrasTotal + comissao + imposto + taxaFixa + taxaCpf);
-  const lucro = r2(preco - totalCustos);
+  // Sem preço ainda não há venda, então não mostramos prejuízo.
+  const lucro = preco > 0 ? r2(preco - totalCustos) : 0;
   return {
     preco: r2(preco),
     custoProdutoTotal,

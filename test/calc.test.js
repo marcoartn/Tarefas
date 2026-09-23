@@ -73,3 +73,15 @@ test('caminho do banco: DB_PATH > volume do Railway > ./data', async () => {
   assert.equal(caminhoBanco('/app', { RAILWAY_VOLUME_MOUNT_PATH: '/data' }), '/data/precificador.db');
   assert.equal(caminhoBanco('/app', {}), '/app/data/precificador.db');
 });
+
+test('tela vazia mostra as taxas por item e lucro zero', () => {
+  const cpf = calcular({});
+  assert.equal(cpf.preco, 0);
+  assert.equal(cpf.taxaFixa, 4);
+  assert.equal(cpf.taxaCpf, 3);
+  assert.equal(cpf.totalCustos, 7);
+  assert.equal(cpf.lucro, 0);
+  const cnpj = calcular({ tipoVendedor: 'cnpj' });
+  assert.equal(cnpj.taxaCpf, 0);
+  assert.equal(cnpj.totalCustos, 4);
+});
