@@ -170,9 +170,10 @@ function criarRepoLoja(db, lojaId) {
         margem_pct: entrada.margemPct,
         preco_venda_input: entrada.precoVenda,
         lucro_desejado: entrada.lucroDesejado,
-        comissao_pct: entrada.taxas.comissaoPct,
-        comissao_teto: entrada.taxas.comissaoTeto,
-        taxa_fixa: entrada.taxas.taxaFixa,
+        // faixa da Shopee em que o preço caiu (comissão % e taxa fixa efetivas)
+        comissao_pct: r.comissaoPct,
+        comissao_teto: r.faixa.comissaoTeto,
+        taxa_fixa: r.taxaFixa,
         taxa_cpf: entrada.taxas.taxaCpf,
         preco: r.preco,
         comissao: r.comissao,
@@ -204,7 +205,6 @@ function criarRepoLoja(db, lojaId) {
       margemPct: l.margem_pct,
       precoVenda: l.preco_venda_input,
       lucroDesejado: l.lucro_desejado,
-      taxas: { comissaoPct: l.comissao_pct, comissaoTeto: l.comissao_teto, taxaFixa: l.taxa_fixa, taxaCpf: l.taxa_cpf },
       resultado: {
         preco: l.preco, comissao: l.comissao, imposto: l.imposto, extrasTotal: l.extras_total,
         totalCustos: l.total_custos, lucro: l.lucro, margemReal: l.margem_real,
@@ -223,7 +223,7 @@ function criarRepoLoja(db, lojaId) {
     taxas,
     salvarTaxas(novas) {
       const t = normalizarEntrada({ taxas: novas }).taxas;
-      if (t.comissaoPct >= 100) throw new ErroValidacao('Comissão precisa ser menor que 100%.');
+      if (t.faixas.some((f) => f.comissaoPct >= 100)) throw new ErroValidacao('Comissão precisa ser menor que 100%.');
       q.gravarTaxas.run(JSON.stringify(t), lojaId);
       return t;
     },

@@ -115,6 +115,7 @@ function renderResultado() {
   $('#erro-calculo').hidden = !r.erro;
   $('#erro-calculo').textContent = r.erro || '';
   renderAlertaMargem(r);
+  renderFaixa(r);
 
   const linhas = [
     ...(r.entrada.produtos.length > 1
@@ -122,9 +123,9 @@ function renderResultado() {
       : [['produto', `Custo do produto${r.entrada.quantidade > 1 ? ` <span class="sub">(${r.entrada.quantidade} × ${brl(r.entrada.custoProduto)})</span>` : ''}`, r.custoProdutoTotal]]),
     ['variaveis', 'Custos variáveis', r.custosVariaveis],
     ...r.extras.map((x) => ['extras', `${esc(x.nome || 'Extra')} <span class="sub">${x.tipo === 'percentual' ? pct(x.valor) : 'fixo'}</span>`, x.custo]),
-    ['comissao', `Comissão Shopee <span class="sub">(${pct(t.comissaoPct)}${r.comissaoLimitada ? ` · teto ${brl(t.comissaoTeto)}` : ''})</span>`, r.comissao],
+    ['comissao', `Comissão Shopee <span class="sub">(${pct(r.comissaoPct)}${r.comissaoLimitada ? ` · teto ${brl(r.faixa.comissaoTeto)}` : ''})</span>`, r.comissao],
     ['imposto', `Imposto <span class="sub">(${pct(r.entrada.impostoPct)})</span>`, r.imposto],
-    ['fixa', 'Taxa fixa por item', r.taxaFixa],
+    ['fixa', `Taxa fixa por item${r.faixa.taxaFixaPct ? ` <span class="sub">(${pct(r.faixa.taxaFixaPct)} do preço)</span>` : ''}`, r.taxaFixa],
   ];
   if (estado.tipoVendedor === 'cpf') linhas.push(['cpf', 'Taxa extra CPF', r.taxaCpf]);
 
@@ -136,6 +137,25 @@ function renderResultado() {
     + `<tr class="lucro" data-grupo="lucro"><td><span class="cor" style="background:${corGrupo('lucro')}"></span>Lucro líquido</td><td class="${r.lucro < 0 ? 'neg' : 'pos'}">${brl(r.lucro)}</td></tr>`;
 
   renderBarra(r.erro ? { preco: 0 } : r);
+}
+
+function rotuloFaixa(f) {
+  if (f.ate === null) return `${brl(f.de)} ou mais`;
+  return f.de > 0 ? `${brl(f.de)} a ${brl(f.ate)}` : `até ${brl(f.ate)}`;
+}
+const descFaixa = (f) => `${pct(f.comissaoPct)} + ${f.taxaFixaPct ? `${pct(f.taxaFixaPct)} do preço` : brl(f.taxaFixa)}`;
+
+function renderFaixa(r) {
+  const info = $('#faixa-info');
+  const tem = r && r.preco > 0 && !r.erro && estado.taxas.faixas.length > 1;
+  info.hidden = !tem;
+  if (tem) info.textContent = `Faixa Shopee: ${rotuloFaixa(r.faixa)} · ${descFaixa(r.faixa)} por item`;
+  const a = r?.alternativa;
+  $('#dica-faixa').hidden = !a;
+  if (!a) return;
+  $('#dica-faixa-txt').textContent = `Seu preço caiu numa faixa mais cara da Shopee. Vendendo por ${brl(a.preco)} você fica com margem de ${pct2(a.margemReal)} (lucro ${brl(a.lucro)}), ${brl(a.economia)} mais barato para o cliente.`;
+  $('#dica-faixa-usar').textContent = `Usar ${brl(a.preco)}`;
+  estado.precoDica = a.preco;
 }
 
 function renderAlertaMargem(r = estado.resultado) {
@@ -200,7 +220,7 @@ function renderAvisoCpf() {
   const cpf = estado.tipoVendedor === 'cpf';
   $('#aviso-cpf').className = `aviso${cpf ? '' : ' info'}`;
   $('#aviso-cpf').textContent = cpf
-    ? `Vendedor CPF: taxa extra de ${brl(estado.taxas.taxaCpf)} por item aplicada automaticamente.`
+    ? `Vendedor CPF: taxa extra de ${brl(estado.taxas.taxaCpf)} por item (Shopee cobra de CPF com mais de 450 pedidos em 90 dias; abaixo disso, marque CNPJ).`
     : 'Vendedor CNPJ: sem taxa extra por item.';
 }
 
@@ -344,6 +364,21 @@ function renderChips() {
   $('#tags-sugestoes').innerHTML = todas.map(({ tag }) => `<option value="${esc(tag)}"></option>`).join('');
 }
 
+// Recalcula o anúncio com as taxas atuais da loja: se o preço (ou, no modo preço de
+// venda, o lucro) mudou, o anúncio foi salvo com regras antigas da Shopee.
+function seloDesatualizado(a) {
+  try {
+    const novo = calcular({ ...a, taxas: estado.taxas });
+    if (novo.erro) return '';
+    if (a.modo === 'preco') {
+      if (Math.abs(novo.lucro - a.resultado.lucro) < 0.005) return '';
+      return `<span class="desatualizado" title="Salvo com taxas antigas. Com a tabela atual o lucro é ${brl(novo.lucro)} (margem ${pct2(novo.margemReal)}). Clique em Editar e Atualizar.">Lucro hoje: ${brl(novo.lucro)}</span>`;
+    }
+    if (Math.abs(novo.preco - a.resultado.preco) < 0.005) return '';
+    return `<span class="desatualizado" title="Salvo com taxas antigas. Com a tabela atual, o preço para a mesma meta é ${brl(novo.preco)}. Clique em Editar e Atualizar.">Preço desatualizado → ${brl(novo.preco)}</span>`;
+  } catch { return ''; }
+}
+
 function renderFiltroMargem() {
   const total = estado.anuncios.filter(abaixoDoMinimo).length;
   if (!total) estado.soMargemBaixa = false;
@@ -397,6 +432,7 @@ function renderLista() {
           </div>
         </div>
         <span class="margem-txt ${classeMargem(margemExibida(a))}" title="Margem real: ${pct2(r.margemReal)}${abaixoDoMinimo(a) ? ` · abaixo do mínimo de ${pct(margemMinima())}` : ''}">${abaixoDoMinimo(a) ? ALERTA_SVG : ''}Margem: ${pct2(margemExibida(a))}</span>
+        ${seloDesatualizado(a)}
         ${a.comentario ? `<button type="button" class="btn-comentario" data-acao="comentario" aria-expanded="${aberto}" title="${esc(a.comentario)}" aria-label="Ver comentário">${ICONES.comentario}</button>` : ''}
         ${a.comentario && aberto ? `<div class="comentario-aberto">${esc(a.comentario)}</div>` : ''}
       </div>
@@ -578,12 +614,13 @@ function selecionarLoja(id) {
 function taxasDaLoja(id) {
   // taxas/{id} é a fonte; lojas antigas guardavam as taxas no próprio documento.
   const loja = estado.lojas.find((l) => l.id === id);
-  return normalizarEntrada({ taxas: estado.taxasPorLoja[id] || loja?.taxas || TAXAS_PADRAO }).taxas;
+  return normalizarTaxas(estado.taxasPorLoja[id] || loja?.taxas || TAXAS_PADRAO);
 }
 
 function aplicarTaxasDaLoja() {
   estado.taxas = taxasDaLoja(estado.lojaId);
   renderAvisoCpf(); renderResultado();
+  renderLista(); // selos de "preço desatualizado" dependem das taxas
 }
 
 function ligarBanco(db) {
@@ -666,6 +703,13 @@ function ligarEventos() {
   barra.addEventListener('focusout', () => focarGrupo(null));
   $('#detalhe').addEventListener('mouseover', (e) => { const tr = e.target.closest('tr[data-grupo]'); focarGrupo(tr?.dataset.grupo ?? null); });
   $('#detalhe').addEventListener('mouseleave', () => focarGrupo(null));
+
+  $('#dica-faixa-usar').addEventListener('click', () => {
+    if (!estado.precoDica) return;
+    $('#precoVenda').value = paraTexto(estado.precoDica.toFixed(2));
+    estado.modo = 'preco'; renderModo(); renderResultado();
+    toast(`Preço de ${brl(estado.precoDica)} aplicado no modo “Por preço de venda”.`);
+  });
 
   $('#tipo-vendedor').addEventListener('click', (e) => {
     const v = e.target.closest('button')?.dataset.v; if (!v) return;
@@ -860,11 +904,11 @@ function ligarEventos() {
 
   $('#abrir-config').addEventListener('click', () => {
     if (estado.db && !lojaAtual()) return abrirLojas();
-    for (const k of CHAVES_TAXA) $(`#cfg-${k}`).value = paraTexto(estado.taxas[k]) || '0';
+    preencherTaxasForm(estado.taxas);
     $('#cfg-motivo').value = '';
     renderConfigModo();
     $('#config').hidden = false;
-    (estado.dono && estado.solicitacoes.length ? $('#pendentes button') : $('#cfg-comissaoPct'))?.focus();
+    (estado.dono && estado.solicitacoes.length ? $('#pendentes button') : $('#faixas-corpo input'))?.focus();
   });
   const fecharConfig = () => { $('#config').hidden = true; };
   $('#fechar-config').addEventListener('click', fecharConfig);
@@ -877,8 +921,8 @@ function ligarEventos() {
 
   $('#form-config').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const novas = normalizarEntrada({ taxas: Object.fromEntries(CHAVES_TAXA.map((k) => [k, $(`#cfg-${k}`).value])) }).taxas;
-    if (novas.comissaoPct >= 100) return toast('A comissão precisa ser menor que 100%.', true);
+    const novas = lerTaxasForm();
+    if (novas.faixas.some((f) => f.comissaoPct >= 100)) return toast('A comissão precisa ser menor que 100%.', true);
     if (!estado.db) {
       estado.taxas = novas; renderAvisoCpf(); renderResultado(); fecharConfig();
       return toast('Taxas aplicadas só nesta sessão (banco indisponível).');
@@ -891,7 +935,7 @@ function ligarEventos() {
         fecharConfig(); toast('Taxas atualizadas.');
       } else {
         if (!estado.uid) return toast('Não foi possível identificar você. Recarregue a página.', true);
-        if (CHAVES_TAXA.every((k) => novas[k] === estado.taxas[k])) return toast('Nenhum valor foi alterado.', true);
+        if (JSON.stringify(novas) === JSON.stringify(estado.taxas)) return toast('Nenhum valor foi alterado.', true);
         const motivo = $('#cfg-motivo').value.trim().slice(0, 300);
         if (!motivo) { $('#cfg-motivo').focus(); return toast('Explique o motivo da alteração.', true); }
         await estado.db.doc(`solicitacoes/${estado.uid}`).set({
@@ -915,9 +959,9 @@ function ligarEventos() {
     card.querySelectorAll('button').forEach((b) => { b.disabled = true; });
     try {
       if (aprovar) {
-        const novas = normalizarEntrada({ taxas: pedido.propostas }).taxas;
+        const novas = normalizarTaxas(pedido.propostas);
         await estado.db.doc(`taxas/${pedido.lojaId}`).set(novas);
-        if (pedido.lojaId === estado.lojaId) for (const k of CHAVES_TAXA) $(`#cfg-${k}`).value = paraTexto(novas[k]) || '0';
+        if (pedido.lojaId === estado.lojaId) preencherTaxasForm(novas);
       }
       await estado.db.doc(`solicitacoes/${pedido.id}`).update({
         status: aprovar ? 'aprovada' : 'recusada', respondidoEm: new Date().toISOString(),
@@ -930,9 +974,47 @@ function ligarEventos() {
   });
 }
 
-const CHAVES_TAXA = Object.keys(TAXAS_PADRAO);
-const ROTULOS_TAXA = { comissaoPct: 'Comissão + frete', comissaoTeto: 'Teto da comissão', taxaFixa: 'Taxa fixa por item', taxaCpf: 'Taxa extra CPF' };
-const fmtTaxa = (k, v) => (k === 'comissaoPct' ? pct2(v) : brl(v));
+// Faixas com o "de" calculado a partir do limite da faixa anterior.
+const comDe = (faixas) => faixas.map((f, i) => ({ ...f, de: i > 0 ? Math.round((faixas[i - 1].ate + 0.01) * 100) / 100 : 0 }));
+
+function preencherTaxasForm(taxas) {
+  const t = normalizarTaxas(taxas);
+  $('#faixas-corpo').innerHTML = comDe(t.faixas).map((f, i) => `
+    <tr data-i="${i}">
+      <td>${rotuloFaixa(f)}</td>
+      <td><span class="entrada-com-prefixo curta"><input id="fx-${i}-pct" data-k="comissaoPct" inputmode="decimal" value="${esc(paraTexto(f.comissaoPct) || '0')}" aria-label="Comissão da faixa ${esc(rotuloFaixa(f))}" /><em>%</em></span></td>
+      <td>${f.taxaFixaPct
+        ? `<span class="entrada-com-prefixo curta"><input id="fx-${i}-fixo" data-k="taxaFixaPct" inputmode="decimal" value="${esc(paraTexto(f.taxaFixaPct))}" aria-label="Taxa fixa (% do preço) da faixa ${esc(rotuloFaixa(f))}" /><em>%</em></span><span class="do-preco">do preço</span>`
+        : `<span class="entrada-com-prefixo curta"><em>R$</em><input id="fx-${i}-fixo" data-k="taxaFixa" inputmode="decimal" value="${esc(paraTexto(f.taxaFixa) || '0')}" aria-label="Taxa fixa da faixa ${esc(rotuloFaixa(f))}" /></span>`}</td>
+    </tr>`).join('');
+  $('#cfg-taxaCpf').value = paraTexto(t.taxaCpf) || '0';
+  $('#faixas-corpo').dataset.base = JSON.stringify(t.faixas);
+}
+
+function lerTaxasForm() {
+  const base = JSON.parse($('#faixas-corpo').dataset.base || '[]');
+  const faixas = base.map((f, i) => {
+    const novo = { ...f };
+    for (const inp of document.querySelectorAll(`#faixas-corpo tr[data-i="${i}"] input`)) novo[inp.dataset.k] = inp.value;
+    return novo;
+  });
+  return normalizarTaxas({ faixas, taxaCpf: $('#cfg-taxaCpf').value });
+}
+
+// Lista as diferenças entre duas tabelas de taxas, em texto legível.
+function difTaxas(antes, depois) {
+  const a = comDe(normalizarTaxas(antes).faixas); const d = comDe(normalizarTaxas(depois).faixas);
+  const linhas = [];
+  d.forEach((f, i) => {
+    const o = a[i] || {};
+    if (o.comissaoPct !== f.comissaoPct) linhas.push(`${rotuloFaixa(f)}: comissão <s>${pct(o.comissaoPct ?? 0)}</s> → <b>${pct(f.comissaoPct)}</b>`);
+    if (o.taxaFixa !== f.taxaFixa) linhas.push(`${rotuloFaixa(f)}: taxa fixa <s>${brl(o.taxaFixa ?? 0)}</s> → <b>${brl(f.taxaFixa)}</b>`);
+    if (o.taxaFixaPct !== f.taxaFixaPct) linhas.push(`${rotuloFaixa(f)}: taxa fixa <s>${pct(o.taxaFixaPct ?? 0)} do preço</s> → <b>${pct(f.taxaFixaPct)} do preço</b>`);
+  });
+  const ca = normalizarTaxas(antes).taxaCpf; const cd = normalizarTaxas(depois).taxaCpf;
+  if (ca !== cd) linhas.push(`Taxa extra CPF: <s>${brl(ca)}</s> → <b>${brl(cd)}</b>`);
+  return linhas;
+}
 const dataCurta = (iso) => { try { return new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); } catch { return ''; } };
 
 function renderBadge() {
@@ -967,11 +1049,11 @@ async function renderPendentes() {
   box.hidden = !lista.length;
   if (!lista.length) { box.innerHTML = ''; return; }
   box.innerHTML = `<p class="pendentes-titulo">${lista.length} solicitação(ões) aguardando sua aprovação</p>` + lista.map((p) => {
-    const mudou = CHAVES_TAXA.filter((k) => Number(p.atuais?.[k]) !== Number(p.propostas?.[k]));
+    const mudou = difTaxas(p.atuais, p.propostas);
     return `
     <article class="pendente" data-solic="${esc(p.id)}">
       <div class="pendente-topo"><b data-autor="${esc(p.autorId)}">Alguém</b> pede alteração em <b>${esc(p.lojaNome)}</b> <small>· ${dataCurta(p.criadoEm)}</small></div>
-      <ul class="dif">${mudou.map((k) => `<li>${ROTULOS_TAXA[k]}: <s>${fmtTaxa(k, p.atuais?.[k])}</s> → <b>${fmtTaxa(k, p.propostas?.[k])}</b></li>`).join('')}</ul>
+      <ul class="dif">${mudou.map((l) => `<li>${l}</li>`).join('') || '<li>Sem diferenças</li>'}</ul>
       ${p.motivo ? `<p class="motivo">“${esc(p.motivo)}”</p>` : ''}
       <div class="pendente-acoes">
         <button type="button" class="btn primario" data-aprovar>Aprovar</button>

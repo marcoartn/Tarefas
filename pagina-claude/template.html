@@ -306,6 +306,24 @@ input, textarea, select { font: inherit; color: inherit; }
 .chip-alerta svg { width: 13px; height: 13px; }
 .chip-alerta[aria-pressed="true"] { background: var(--ruim); color: #fff; }
 .icone-alerta { display: inline-block; width: 13px; height: 13px; vertical-align: -2px; margin-right: 3px; }
+.tabela-faixas-wrap { overflow-x: auto; margin-top: 12px; }
+.tabela-faixas { width: 100%; border-collapse: collapse; font-size: 12px; }
+.tabela-faixas th { text-align: left; font-size: 11px; color: var(--sutil); font-weight: 700; padding: 0 6px 6px 0; text-transform: uppercase; letter-spacing: .04em; }
+.tabela-faixas td { padding: 4px 6px 4px 0; vertical-align: middle; white-space: nowrap; }
+.tabela-faixas td:first-child { font-weight: 700; font-variant-numeric: tabular-nums; }
+.tabela-faixas .entrada-com-prefixo { width: 96px; }
+.tabela-faixas input { padding: 6px 4px 6px 8px !important; }
+.tabela-faixas .entrada-com-prefixo input, .form-config .entrada-com-prefixo input { border: 0 !important; box-shadow: none !important; background: transparent !important; }
+.tabela-faixas td > .entrada-com-prefixo { display: inline-flex; vertical-align: middle; }
+.tabela-faixas .do-preco { color: var(--sutil); font-size: 11px; margin-left: 4px; }
+.form-config h2 .config-loja { display: block; font-size: 12px; font-weight: 600; color: var(--sutil); margin-top: 2px; letter-spacing: 0; }
+.tabela-faixas input[readonly] { color: var(--sutil); }
+.faixa-info { margin: 8px 0 0; font-size: 11px; opacity: .85; font-variant-numeric: tabular-nums; }
+.dica-faixa { display: flex; gap: 10px; align-items: flex-start; margin-top: 12px; background: #e8f7f5; border: 1px solid #b7e4dd; color: #0b4f48; border-radius: 10px; padding: 10px 12px; font-size: 12px; }
+.dica-faixa svg { width: 20px; height: 20px; flex: none; color: var(--teal-escuro); }
+.dica-faixa p { margin: 0 0 4px; line-height: 1.45; }
+.dica-faixa .btn-link { padding: 0; font-size: 12px; color: var(--teal-escuro); }
+.desatualizado { display: inline-flex; align-items: center; gap: 4px; background: #fff4e5; color: #9a3412; border-radius: 999px; padding: 1px 8px; font-size: 10.5px; font-weight: 700; white-space: nowrap; }
 .modal { position: fixed; inset: 0; background: rgba(8, 20, 18, .55); display: grid; place-items: center; padding: 16px; z-index: 30; }
 .form-config { background: var(--painel); border-radius: var(--raio); padding: 20px 22px; width: min(420px, 100%); box-shadow: 0 20px 60px rgba(0,0,0,.3); max-height: 90vh; overflow: auto; }
 .form-config h2 { margin-top: 0; font-size: 18px; color: var(--texto); text-transform: none; letter-spacing: 0; }
@@ -442,10 +460,15 @@ input, textarea, select { font: inherit; color: inherit; }
           <div><small>Lucro líquido</small><strong id="kpi-lucro" class="num">R$ 0,00</strong></div>
           <div><small>Margem real</small><strong id="kpi-margem" class="num">0%</strong></div>
         </div>
+        <p class="faixa-info" id="faixa-info" hidden></p>
         <p class="alerta-margem" id="alerta-margem" role="status" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17h.01"/></svg><span id="alerta-margem-txt"></span></p>
       </div>
       <p class="erro" id="erro-calculo" hidden></p>
 
+      <div class="dica-faixa" id="dica-faixa" role="status" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z"/></svg>
+        <div><p id="dica-faixa-txt"></p><button type="button" class="btn-link" id="dica-faixa-usar"></button></div>
+      </div>
       <div class="viz" id="viz">
         <div class="viz-topo">
           <h3>Para onde vai o seu preço</h3>
@@ -518,13 +541,16 @@ input, textarea, select { font: inherit; color: inherit; }
   <form class="form-config" id="form-config">
     <h2>Taxas da Shopee <small class="config-loja" id="config-loja"></small></h2>
     <section class="pendentes" id="pendentes" hidden aria-label="Solicitações pendentes"></section>
-    <p class="sutil" id="config-intro">Confira as regras atuais na Central do Vendedor. Novos cálculos usam estes valores, e cada anúncio salvo guarda as taxas que foram usadas nele.</p>
+    <p class="sutil" id="config-intro">Tabela da Shopee por faixa de preço (desde 03/2026). Os limites das faixas seguem a Shopee; comissão e taxa fixa podem ser ajustadas se a Shopee mudar. Confira na Central do Vendedor.</p>
     <p class="trava" id="config-trava" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span>Só o dono altera as taxas. Proponha os novos valores e envie para aprovação.</span></p>
-    <label class="campo"><span>Comissão + frete (%)</span><input id="cfg-comissaoPct" name="comissaoPct" type="text" inputmode="decimal" /></label>
-    <label class="campo"><span>Teto da comissão por item (R$)</span><input id="cfg-comissaoTeto" name="comissaoTeto" type="text" inputmode="decimal" /></label>
-    <label class="campo"><span>Taxa fixa por item (R$)</span><input id="cfg-taxaFixa" name="taxaFixa" type="text" inputmode="decimal" /></label>
-    <label class="campo"><span>Taxa extra vendedor CPF (R$)</span><input id="cfg-taxaCpf" name="taxaCpf" type="text" inputmode="decimal" /></label>
-    <label class="campo" id="motivo-campo" hidden><span>Motivo da alteração</span><textarea id="cfg-motivo" rows="2" maxlength="300" placeholder="Ex.: a Shopee anunciou taxa fixa de R$ 4,50"></textarea></label>
+    <div class="tabela-faixas-wrap">
+      <table class="tabela-faixas" id="tabela-faixas">
+        <thead><tr><th>Preço do item</th><th>Comissão</th><th>Taxa fixa</th></tr></thead>
+        <tbody id="faixas-corpo"></tbody>
+      </table>
+    </div>
+    <label class="campo"><span>Taxa extra vendedor CPF, por item (R$) <i class="dica" title="Cobrada de vendedores CPF com mais de 450 pedidos em 90 dias. Abaixo disso, CPF paga igual ao CNPJ.">?</i></span><input id="cfg-taxaCpf" name="taxaCpf" type="text" inputmode="decimal" /></label>
+    <label class="campo" id="motivo-campo" hidden><span>Motivo da alteração</span><textarea id="cfg-motivo" rows="2" maxlength="300" placeholder="Ex.: a Shopee mudou a taxa fixa da faixa até R$ 79,99"></textarea></label>
     <p class="status-solic" id="status-solic" hidden></p>
     <div class="acoes">
       <button class="btn primario" type="submit" id="salvar-taxas">Salvar taxas</button>

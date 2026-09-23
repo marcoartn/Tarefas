@@ -6,8 +6,8 @@ const base = { tipoVendedor: 'cpf', custoProduto: 10, impostoPct: 0, custosVaria
 
 test('por margem: lucro entregue bate com a margem pedida', () => {
   const r = calcular({ ...base, modo: 'margem', margemPct: 10 });
-  // P = (10 + 4.5 + 3) / (1 - 0.20 - 0.10) = 25
-  assert.equal(r.preco, 25);
+  // Faixa R$ 8–79,99: P = (10 + 4 + 3) / (1 - 0,20 - 0,10) = 24,2857… → 24,29
+  assert.equal(r.preco, 24.29);
   assert.ok(r.margemReal >= 10);
   assert.equal(r.totalCustos + r.lucro, r.preco);
 });
@@ -15,14 +15,14 @@ test('por margem: lucro entregue bate com a margem pedida', () => {
 test('CNPJ não paga a taxa extra', () => {
   const r = calcular({ ...base, tipoVendedor: 'cnpj', modo: 'margem', margemPct: 0 });
   assert.equal(r.taxaCpf, 0);
-  assert.equal(r.preco, 18.12); // (10 + 4,50) / 0,8 = 18,125; em 18,12 a comissão arredonda p/ 3,62 e o lucro já é 0
+  assert.equal(r.preco, 17.5); // (10 + 4) / 0,8
 });
 
 test('por preço de venda: detalha e calcula lucro', () => {
   const r = calcular({ ...base, modo: 'preco', precoVenda: 30, impostoPct: 6 });
   assert.equal(r.comissao, 6);
   assert.equal(r.imposto, 1.8);
-  assert.equal(r.lucro, 4.7); // 30 - 10 - 6 - 1,80 - 4,50 - 3
+  assert.equal(r.lucro, 5.2); // 30 - 10 - 6 - 1,80 - 4 - 3
 });
 
 test('por lucro desejado', () => {
@@ -35,11 +35,21 @@ test('quantidade multiplica o custo do produto (kits)', () => {
   assert.equal(r.custoProdutoTotal, 30);
 });
 
-test('teto da comissão é respeitado em produtos caros', () => {
+test('produto caro: faixa de R$ 200+ (14% + R$ 26), sem teto de comissão', () => {
   const r = calcular({ ...base, custoProduto: 1000, modo: 'margem', margemPct: 10 });
+  // (1000 + 26 + 3) / (1 - 0,14 - 0,10) = 1353,947… → 1353,95
+  assert.equal(r.preco, 1353.95);
+  assert.equal(r.comissaoPct, 14);
+  assert.equal(r.comissao, 189.55);
+  assert.equal(r.taxaFixa, 26);
+  assert.equal(r.comissaoLimitada, false);
+  assert.ok(r.margemReal >= 10);
+});
+
+test('teto de comissão continua funcionando para taxas no formato antigo', () => {
+  const r = calcular({ ...base, custoProduto: 1000, margemPct: 10, taxas: { comissaoPct: 20, comissaoTeto: 100, taxaFixa: 4.5, taxaCpf: 3 } });
   assert.equal(r.comissao, 100);
   assert.ok(r.comissaoLimitada);
-  assert.ok(r.margemReal >= 10);
 });
 
 test('extras fixos e percentuais entram no cálculo', () => {
@@ -48,7 +58,8 @@ test('extras fixos e percentuais entram no cálculo', () => {
 });
 
 test('percentuais impossíveis retornam erro', () => {
-  const r = calcular({ ...base, modo: 'margem', margemPct: 85 });
+  // Até na faixa de 14% não existe preço: 14% + 90% passa de 100%
+  const r = calcular({ ...base, modo: 'margem', margemPct: 90 });
   assert.ok(r.erro);
 });
 
@@ -78,13 +89,13 @@ test('caminho do banco: DB_PATH > volume do Railway > ./data', async () => {
 test('tela vazia mostra as taxas por item e lucro zero', () => {
   const cpf = calcular({});
   assert.equal(cpf.preco, 0);
-  assert.equal(cpf.taxaFixa, 4.5);
+  assert.equal(cpf.taxaFixa, 4);
   assert.equal(cpf.taxaCpf, 3);
-  assert.equal(cpf.totalCustos, 7.5);
+  assert.equal(cpf.totalCustos, 7);
   assert.equal(cpf.lucro, 0);
   const cnpj = calcular({ tipoVendedor: 'cnpj' });
   assert.equal(cnpj.taxaCpf, 0);
-  assert.equal(cnpj.totalCustos, 4.5);
+  assert.equal(cnpj.totalCustos, 4);
 });
 
 test('kit com vários produtos soma custo × quantidade de cada um', () => {
@@ -135,7 +146,8 @@ function casoAleatorio(R) {
     extras: R() < 0.4 ? [{ nome: 'x', tipo: R() < 0.5 ? 'percentual' : 'fixo', valor: c2(R() * 6) }] : [],
     modo: ['margem', 'lucro', 'preco'][Math.floor(R() * 3)],
     margemPct: c2(R() * 45), lucroDesejado: c2(R() * 40), precoVenda: c2(R() * 900),
-    taxas: { ...TX, taxaFixa: R() < 0.5 ? 4 : 4.5, comissaoTeto: R() < 0.2 ? 0 : 100 },
+    // metade dos casos na tabela de faixas de 2026, metade no formato antigo de taxa única
+    taxas: R() < 0.5 ? undefined : { ...TX, taxaFixa: R() < 0.5 ? 4 : 4.5, comissaoTeto: R() < 0.2 ? 0 : 100 },
   };
 }
 
@@ -151,8 +163,13 @@ test('propriedades em 10.000 casos aleatórios (todos os modos, kits, extras, te
     // 1. O preço fecha: custos + lucro = preço (no centavo), quando há preço
     if (r.preco > 0) assert.equal(c2(r.totalCustos + r.lucro), r.preco, `não fecha: ${ctx}`);
     // 2. Comissão = 20% do preço, limitada ao teto
-    const bruta = r.preco * e.taxas.comissaoPct / 100;
-    const esperada = c2(e.taxas.comissaoTeto > 0 ? Math.min(bruta, e.taxas.comissaoTeto) : bruta);
+    // 2b. A faixa aplicada é a do preço, e a taxa fixa é a da faixa
+    if (r.preco > 0) {
+      assert.ok(r.preco >= r.faixa.de - 1e-9 && (r.faixa.ate === null || r.preco <= r.faixa.ate + 1e-9), `faixa errada: ${ctx} → ${r.preco}`);
+      assert.equal(r.taxaFixa, c2(r.faixa.taxaFixa + r.preco * r.faixa.taxaFixaPct / 100), `taxa fixa: ${ctx}`);
+    }
+    const bruta = r.preco * r.comissaoPct / 100;
+    const esperada = c2(r.faixa.comissaoTeto > 0 ? Math.min(bruta, r.faixa.comissaoTeto) : bruta);
     assert.equal(r.comissao, esperada, `comissão: ${ctx}`);
     // 3. Total de custos = soma das partes
     const soma = c2(r.custoProdutoTotal + r.custosVariaveis + r.extrasTotal + r.comissao + r.imposto + r.taxaFixa + r.taxaCpf);
@@ -212,4 +229,51 @@ test('margem real exibida nunca é maior que a exata (truncada em 2 casas)', () 
     assert.ok(r.margemReal <= exata + 1e-9, `${r.margemReal} > ${exata}`);
     assert.ok(exata - r.margemReal < 0.01 + 1e-9);
   }
+});
+
+// ---------- Tabela de faixas da Shopee (desde 03/2026) ----------
+const TABELA = undefined; // usa FAIXAS_PADRAO
+const facilite = { tipoVendedor: 'cpf', custoProduto: 15, impostoPct: 8, custosVariaveis: 1, modo: 'margem' };
+
+test('bate com o FaciliteMax: margem 43% → faixa R$ 8–79,99 (20% + R$ 4)', () => {
+  const r = calcular({ ...facilite, margemPct: 43, taxas: TABELA });
+  // 23 / (1 - 0,20 - 0,08 - 0,43) = 79,3103… O FaciliteMax mostra 79,31; 79,30 já dá 43,00%
+  assert.equal(r.preco, 79.3);
+  assert.equal(r.comissao, 15.86);
+  assert.equal(r.taxaFixa, 4);
+  assert.ok(r.margemReal >= 43);
+  assert.equal(r.alternativa, null);
+});
+
+test('bate com o FaciliteMax: margem 43,5% salta para a faixa R$ 100–199,99 (14% + R$ 20)', () => {
+  const r = calcular({ ...facilite, margemPct: 43.5, taxas: TABELA });
+  // R$ 8–79,99 exigiria 80,70; R$ 80–99,99 exigiria 101,45; R$ 100–199,99: 39 / 0,345 = 113,04 (113,03 já atinge)
+  assert.equal(r.preco, 113.03);
+  assert.equal(r.comissaoPct, 14);
+  assert.equal(r.taxaFixa, 20);
+  assert.ok(r.margemReal >= 43.5);
+  // A dica aponta R$ 79,99 (e não 99,99): margem 43,24% e R$ 33,04 mais barato
+  assert.deepEqual(r.alternativa, { preco: 79.99, lucro: 34.59, margemReal: 43.24, economia: 33.04 });
+});
+
+test('limites das faixas: R$ 79,99 x R$ 80,00 x R$ 100,00 x R$ 200,00', () => {
+  const t = (p) => calcular({ tipoVendedor: 'cnpj', custoProduto: 0, custosVariaveis: 1, modo: 'preco', precoVenda: p });
+  assert.equal(c2(t(79.99).comissao + t(79.99).taxaFixa), 20); // 15,998 → 16,00 + 4
+  assert.equal(c2(t(80).comissao + t(80).taxaFixa), 27.2); // 11,20 + 16: 1 centavo a mais, R$ 7,20 de taxa a mais
+  assert.deepEqual([t(99.99).taxaFixa, t(100).taxaFixa, t(199.99).taxaFixa, t(200).taxaFixa], [16, 20, 20, 26]);
+});
+
+test('abaixo de R$ 8 a taxa fixa é metade do preço', () => {
+  const r = calcular({ tipoVendedor: 'cnpj', custoProduto: 0.5, modo: 'preco', precoVenda: 6 });
+  assert.equal(r.taxaFixa, 3);
+  assert.equal(r.comissao, 1.2);
+  assert.equal(calcular({ tipoVendedor: 'cnpj', custoProduto: 0.5, modo: 'preco', precoVenda: 8 }).taxaFixa, 4);
+});
+
+test('menor preço nunca fica numa faixa mais cara se a mais barata comportar', () => {
+  // custo 45, margem 15%, imposto 4%: 8–79,99 exigiria 85,25 → cai para 80–99,99
+  const r = calcular({ tipoVendedor: 'cpf', custoProduto: 45, impostoPct: 4, margemPct: 15 });
+  assert.equal(r.faixa.ate, 99.99);
+  assert.ok(r.margemReal >= 15);
+  assert.ok(!(calcular({ tipoVendedor: 'cpf', custoProduto: 45, impostoPct: 4, modo: 'preco', precoVenda: 79.99 }).margemReal >= 15));
 });

@@ -89,9 +89,9 @@ test('cada loja só enxerga e altera os próprios anúncios', async (t) => {
   assert.equal((await a.api(`/anuncios/${id}`)).dados.nome, 'Body Bebê');
 
   // Taxas também são por loja
-  await b.api('/config', 'PUT', { comissaoPct: 14, comissaoTeto: 100, taxaFixa: 4, taxaCpf: 3 });
-  assert.equal((await a.api('/config')).dados.comissaoPct, 20);
-  assert.equal((await b.api('/config')).dados.comissaoPct, 14);
+  await b.api('/config', 'PUT', { faixas: [{ ate: null, comissaoPct: 14, taxaFixa: 4 }], taxaCpf: 3 });
+  assert.equal((await a.api('/config')).dados.faixas[1].comissaoPct, 20);
+  assert.equal((await b.api('/config')).dados.faixas[0].comissaoPct, 14);
 });
 
 test('escrita sem JSON é recusada (proteção contra CSRF)', async (t) => {
@@ -115,12 +115,12 @@ test('CRUD de anúncios com recálculo no servidor', async (t) => {
     tags: ['Ranqueamento', 'ranqueamento', 'Kit'], comentario: 'teste', preco: 1, resultado: { preco: 1 },
   });
   assert.equal(criado.status, 201);
-  assert.equal(criado.dados.resultado.preco, 25);
+  assert.equal(criado.dados.resultado.preco, 24.29); // (10 + 4 + 3) / 0,7
   assert.deepEqual(criado.dados.tags, ['Ranqueamento', 'Kit']);
   const id = criado.dados.id;
 
   const editado = await api(`/anuncios/${id}`, 'PUT', { ...criado.dados, tipoVendedor: 'cnpj', tags: ['Kit'] });
-  assert.equal(editado.dados.resultado.preco, 20.72); // 20,71 daria margem real de 9,995%
+  assert.equal(editado.dados.resultado.preco, 20); // (10 + 4) / 0,7; 19,99 daria margem real abaixo de 10%
   assert.deepEqual(editado.dados.tags, ['Kit']);
 
   const dup = await api(`/anuncios/${id}/duplicar`, 'POST');
@@ -138,7 +138,7 @@ test('CRUD de anúncios com recálculo no servidor', async (t) => {
 
   const kit = await api('/anuncios', 'POST', { nome: 'Kit', produtos: [{ custo: 5, quantidade: 2 }, { custo: 4, quantidade: 1 }], modo: 'preco', precoVenda: 40 });
   assert.deepEqual((await api(`/anuncios/${kit.dados.id}`)).dados.produtos, [{ custo: 5, quantidade: 2 }, { custo: 4, quantidade: 1 }]);
-  assert.equal(kit.dados.resultado.totalCustos, 14 + 8 + 4.5 + 3);
+  assert.equal(kit.dados.resultado.totalCustos, 14 + 8 + 4 + 3); // produtos + 20% de 40 + R$ 4 + CPF
 
   assert.equal((await api('/anuncios', 'POST', { custoProduto: 10 })).status, 400);
   assert.equal((await api('/anuncios', 'POST', { nome: 'x', custoProduto: 10, margemPct: 90 })).status, 400);
