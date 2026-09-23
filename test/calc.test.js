@@ -101,3 +101,13 @@ test('formato antigo (custoProduto + quantidade) continua funcionando', () => {
   assert.deepEqual(r.entrada.produtos, [{ custo: 3, quantidade: 4 }]);
   assert.equal(r.custoProdutoTotal, 12);
 });
+
+test('bate com o FaciliteMax: custo 12, imposto 4%, variáveis 1,50, margem 0%, taxa fixa R$ 4', () => {
+  const r = calcular({ tipoVendedor: 'cpf', custoProduto: 12, impostoPct: 4, custosVariaveis: 1.5, modo: 'margem', margemPct: 0,
+    taxas: { comissaoPct: 20, comissaoTeto: 100, taxaFixa: 4, taxaCpf: 3 } });
+  assert.equal(r.preco, 26.97);
+  assert.equal(r.comissao, 5.39);
+  assert.equal(r.imposto, 1.08);
+  assert.equal(r.totalCustos, 26.97);
+  assert.equal(r.lucro, 0);
+});

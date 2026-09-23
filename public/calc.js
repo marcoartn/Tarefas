@@ -14,7 +14,6 @@ const num = (v) => {
   return Number.isFinite(n) ? n : 0;
 };
 const r2 = (v) => Math.round((v + Number.EPSILON) * 100) / 100;
-const ceil2 = (v) => Math.ceil(r2(v * 100) - 1e-9) / 100;
 
 const qtdValida = (v) => Math.min(999, Math.max(1, Math.floor(num(v) || 1)));
 
@@ -126,10 +125,11 @@ export function calcular(entrada) {
 
   const { preco, erro } = resolverPreco(e);
   if (erro) return { entrada: e, erro, ...detalharPreco(0, e) };
-  // Arredonda para cima no centavo e, como comissão/imposto também são arredondados
-  // em centavos, sobe mais alguns centavos até o lucro real atingir o pedido.
+  // Arredonda para o centavo mais próximo (como o FaciliteMax) e, como comissão e
+  // imposto também são arredondados em centavos, sobe de centavo em centavo só se
+  // o lucro real ficar abaixo do pedido. Resultado: o menor preço que entrega a meta.
   const atingiu = (d) => (e.modo === 'margem' ? d.lucro >= r2(d.preco * e.margemPct / 100) : d.lucro >= r2(e.lucroDesejado));
-  let d = detalharPreco(ceil2(preco), e);
+  let d = detalharPreco(r2(preco), e);
   for (let i = 0; i < 20 && !atingiu(d); i++) d = detalharPreco(r2(d.preco + 0.01), e);
   return { entrada: e, ...d };
 }
