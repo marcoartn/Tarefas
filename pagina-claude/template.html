@@ -370,6 +370,17 @@ input, textarea, select { font: inherit; color: inherit; }
 .kpis div { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06), 0 2px 6px rgba(0, 0, 0, .12); }
 .aviso { box-shadow: 0 1px 2px rgba(154, 52, 18, .06); }
 @media (prefers-reduced-motion: reduce) { .abas button, .btn, .btn-adicionar, .qtd button, .chip, .foto { transition: none; } .btn:active, .abas button:active, .qtd button:active { transform: none; } }
+
+/* Cartão de anúncio: pulinho ao passar o mouse ("é eu!") e fica levemente levantado */
+.item { transition: transform .22s ease, box-shadow .22s ease; will-change: transform; }
+.item:hover { transform: translateY(-3px); box-shadow: 0 6px 16px rgba(13, 35, 68, .18), 0 2px 4px rgba(13, 35, 68, .12); animation: pulinho .42s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes pulinho {
+  0% { transform: translateY(0); }
+  45% { transform: translateY(-6px); }
+  75% { transform: translateY(-2px); }
+  100% { transform: translateY(-3px); }
+}
+@media (prefers-reduced-motion: reduce) { .item, .item:hover { transition: none; animation: none; transform: none; } }
 </style>
 
 <header class="topo">
