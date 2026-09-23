@@ -1,7 +1,7 @@
 # PrecificaShop — calculadora de preço para Shopee
 
 Calculadora de precificação com anúncios salvos em banco de dados **SQLite** (arquivo local).
-Não depende de nenhum pacote externo: só precisa do **Node.js 22.5+**.
+Não depende de nenhum pacote externo: só precisa do **Node.js 22.13+**.
 
 ```bash
 npm start          # http://localhost:3000
