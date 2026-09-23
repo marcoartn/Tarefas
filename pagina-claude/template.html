@@ -49,6 +49,11 @@ input, textarea, select { font: inherit; color: inherit; }
 
 .topo { background: var(--circuito), var(--topo); color: var(--topo-texto); display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 16px; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; }
 .marca { display: inline-grid; color: var(--topo-texto); line-height: 1; padding: 10px 0 0 4px; }
+.marca { transform-origin: left center; transition: transform .25s cubic-bezier(.2, .8, .2, 1); cursor: default; }
+.marca:hover { transform: scale(1.12); }
+.marca .a-nos { transition: color .25s ease, filter .25s ease; }
+.marca:hover .a-nos { color: #5eead4; filter: drop-shadow(0 0 3px rgba(94, 234, 212, .7)); }
+@media (prefers-reduced-motion: reduce) { .marca, .marca .a-nos { transition: none; } .marca:hover { transform: none; } }
 .marca-nome { font-size: 24px; font-weight: 700; letter-spacing: -.01em; white-space: nowrap; }
 .a-letra { position: relative; display: inline-block; color: var(--teal); }
 /* Nós do circuito posicionados em em: acompanham o tamanho da letra em qualquer fonte */
