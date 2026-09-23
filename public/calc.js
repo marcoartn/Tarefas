@@ -8,7 +8,8 @@
 // Não há mais teto de comissão (`comissaoTeto` 0 = sem teto).
 export const FAIXAS_PADRAO = Object.freeze([
   Object.freeze({ ate: 7.99, comissaoPct: 20, taxaFixa: 0, taxaFixaPct: 50, comissaoTeto: 0 }),
-  Object.freeze({ ate: 79.99, comissaoPct: 20, taxaFixa: 4, taxaFixaPct: 0, comissaoTeto: 0 }),
+  // R$ 4,00 até 30/09/2026; R$ 4,50 a partir de 01/10/2026 (anúncio da Shopee)
+  Object.freeze({ ate: 79.99, comissaoPct: 20, taxaFixa: 4.5, taxaFixaPct: 0, comissaoTeto: 0 }),
   Object.freeze({ ate: 99.99, comissaoPct: 14, taxaFixa: 16, taxaFixaPct: 0, comissaoTeto: 0 }),
   Object.freeze({ ate: 199.99, comissaoPct: 14, taxaFixa: 20, taxaFixaPct: 0, comissaoTeto: 0 }),
   Object.freeze({ ate: null, comissaoPct: 14, taxaFixa: 26, taxaFixaPct: 0, comissaoTeto: 0 }),
