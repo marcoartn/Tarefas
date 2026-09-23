@@ -136,9 +136,7 @@ function renderResultado() {
     + `<tr class="total"><td>Total de custos + taxas</td><td>${brl(r.totalCustos)}</td></tr>`
     + `<tr class="lucro" data-grupo="lucro"><td><span class="cor" style="background:${corGrupo('lucro')}"></span>Lucro líquido</td><td class="${r.lucro < 0 ? 'neg' : 'pos'}">${brl(r.lucro)}</td></tr>`;
 
-  // O simulador volta ao preço calculado sempre que os dados mudam.
-  estado.simPreco = r.preco;
-  renderSimulador();
+  renderBarra(r.erro ? { preco: 0 } : r);
 }
 
 function renderAlertaMargem(r = estado.resultado) {
@@ -159,7 +157,7 @@ function montarBarra() {
     `<span class="seg${g.escuro ? ' escuro' : ''}" data-grupo="${g.id}" tabindex="0" style="background:${g.cor};flex:0 1 0px"></span>`).join('');
 }
 
-function renderBarra(d, testado) {
+function renderBarra(d) {
   const v = valoresPorGrupo(d);
   const base = Math.max(d.preco, d.totalCustos, 0.01);
   estado.viz = { v, base, preco: d.preco };
@@ -174,7 +172,6 @@ function renderBarra(d, testado) {
     el.textContent = parte >= 0.09 ? `${Math.round(parte * 100)}%` : '';
     el.setAttribute('aria-label', `${GRUPOS.find((g) => g.id === el.dataset.grupo).nome}: ${brl(val)}, ${pct2(parte * 100)} do preço`);
   }
-  $('#viz-dica').textContent = testado ? `Mostrando o preço testado: ${brl(d.preco)}` : 'Passe o mouse em cada parte';
   const alerta = $('#viz-alerta');
   alerta.hidden = d.lucro >= 0;
   if (d.lucro < 0) alerta.textContent = `Prejuízo de ${brl(-d.lucro)}: os custos passam do preço.`;
@@ -199,44 +196,6 @@ function focarGrupo(grupo, alvoSeg) {
   tip.style.top = `${r.top - caixa.top - 6}px`;
 }
 
-// ---------- Simulador "E se eu vender por…?" ----------
-function renderSimulador() {
-  const r = estado.resultado;
-  const ok = r && r.preco > 0 && !r.erro;
-  $('#simulador').hidden = !ok;
-  if (!ok) { renderBarra(r || { preco: 0 }, false); return; }
-  const e = normalizarEntrada(lerEntrada());
-  const minimo = calcular({ ...lerEntrada(), modo: 'margem', margemPct: 0 }).preco;
-  const min = Math.max(0.01, Math.floor(Math.min(minimo, r.preco) * 0.8 * 100) / 100);
-  const max = Math.ceil(Math.max(minimo, r.preco) * 1.5 * 100) / 100;
-  const range = $('#sim-range');
-  range.min = min; range.max = max;
-  const p = Math.min(Math.max(estado.simPreco ?? r.preco, min), max);
-  range.value = p;
-  const d = detalharPreco(p, e);
-  const testado = Math.abs(p - r.preco) >= 0.005;
-  $('#sim-preco').textContent = brl(p);
-  $('#sim-lucro').textContent = brl(d.lucro);
-  $('#sim-lucro').className = d.lucro < 0 ? 'neg' : 'pos';
-  $('#sim-margem').textContent = pct2(d.margemReal);
-  $('#sim-margem').className = d.lucro < 0 ? 'neg' : '';
-  const dif = d.lucro - r.lucro;
-  $('#sim-dif').textContent = testado ? `${dif >= 0 ? '+' : '−'}${brl(Math.abs(dif))}` : '—';
-  $('#sim-dif').className = !testado ? '' : dif >= 0 ? 'pos' : 'neg';
-  const pos = (v) => `${((v - min) / (max - min)) * 100}%`;
-  $('#sim-marca-min').style.left = pos(minimo);
-  $('#sim-min-txt').textContent = `Mínimo ${brl(minimo)}`;
-  $('#sim-marca-calc').style.left = pos(r.preco);
-  $('#sim-calc-txt').textContent = `Calculado ${brl(r.preco)}`;
-  // Mínimo igual ao calculado (margem 0%): uma etiqueta só. Muito perto: desce a do mínimo.
-  const distancia = Math.abs(r.preco - minimo) / (max - min);
-  $('#sim-marca-min').hidden = Math.abs(r.preco - minimo) < 0.005;
-  $('#sim-marca-min').classList.toggle('baixo', distancia < 0.3);
-  $('#sim-reset').hidden = !testado;
-  $('#sim-usar').hidden = !testado;
-  $('#sim-usar').textContent = `Usar ${brl(p)} como preço de venda`;
-  renderBarra(testado ? d : r, testado);
-}
 
 function renderAvisoCpf() {
   const cpf = estado.tipoVendedor === 'cpf';
@@ -708,13 +667,6 @@ function ligarEventos() {
   barra.addEventListener('focusout', () => focarGrupo(null));
   $('#detalhe').addEventListener('mouseover', (e) => { const tr = e.target.closest('tr[data-grupo]'); focarGrupo(tr?.dataset.grupo ?? null); });
   $('#detalhe').addEventListener('mouseleave', () => focarGrupo(null));
-  $('#sim-range').addEventListener('input', (e) => { estado.simPreco = Number(e.target.value); renderSimulador(); });
-  $('#sim-reset').addEventListener('click', () => { estado.simPreco = estado.resultado?.preco; renderSimulador(); });
-  $('#sim-usar').addEventListener('click', () => {
-    $('#precoVenda').value = paraTexto(Number(estado.simPreco).toFixed(2));
-    estado.modo = 'preco'; renderModo(); renderResultado();
-    toast('Preço aplicado no modo “Por preço de venda”.');
-  });
 
   $('#tipo-vendedor').addEventListener('click', (e) => {
     const v = e.target.closest('button')?.dataset.v; if (!v) return;

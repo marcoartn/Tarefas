@@ -165,25 +165,6 @@ input, textarea, select { font: inherit; color: inherit; }
 .viz-tip small { opacity: .8; }
 .viz-alerta { margin: 8px 0 0; font-size: 12px; color: var(--ruim); background: var(--ruim-fundo); border-radius: 6px; padding: 6px 10px; }
 
-.simulador { margin-top: 16px; border: 1px solid var(--borda); border-radius: 10px; padding: 12px 14px; background: linear-gradient(180deg, #f8fafc, var(--painel)); }
-.sim-topo { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-.sim-topo h3 { margin: 0; }
-.sim-topo .btn-link { font-size: 12px; padding: 0; }
-.sim-numeros { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 10px 0 6px; }
-.sim-numeros div { background: var(--campo); border-radius: 8px; padding: 6px 8px; min-width: 0; }
-.sim-numeros small { display: block; font-size: 10px; color: var(--sutil); text-transform: uppercase; letter-spacing: .04em; }
-.sim-numeros strong { font-size: 14px; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.sim-numeros .pos { color: var(--bom); } .sim-numeros .neg { color: var(--ruim); }
-@media (max-width: 480px) { .sim-numeros { grid-template-columns: repeat(2, 1fr); } }
-.sim-trilho { position: relative; padding: 4px 0 44px; }
-.sim-trilho input[type=range] { width: 100%; accent-color: var(--primaria); margin: 0; }
-.sim-marcas { position: absolute; left: 8px; right: 8px; top: 22px; height: 26px; }
-.sim-marca { position: absolute; transform: translateX(-50%); display: grid; justify-items: center; gap: 1px; font-size: 10px; color: var(--sutil); white-space: nowrap; }
-.sim-marca i { width: 2px; height: 8px; border-radius: 1px; background: currentColor; }
-.sim-marca.minimo { color: var(--ruim); }
-.sim-marca.baixo b { margin-top: 13px; }
-.sim-marca.calculado { color: var(--primaria); }
-.sim-usar { width: 100%; padding: 8px; font-size: 12px; }
 @media (prefers-reduced-motion: reduce) { .seg, .detalhe tr { transition: none; } }
 .detalhe { width: 100%; border-collapse: collapse; font-size: 13px; }
 .detalhe td { padding: 6px 0; border-bottom: 1px solid var(--borda); }
@@ -433,28 +414,6 @@ input, textarea, select { font: inherit; color: inherit; }
       </div>
       <h3>Detalhamento</h3>
       <table class="detalhe" id="detalhe"></table>
-
-      <section class="simulador" id="simulador" hidden aria-labelledby="sim-titulo">
-        <div class="sim-topo">
-          <h3 id="sim-titulo">E se eu vender por…?</h3>
-          <button type="button" class="btn-link" id="sim-reset">Voltar ao calculado</button>
-        </div>
-        <div class="sim-numeros">
-          <div><small>Preço testado</small><strong id="sim-preco">R$ 0,00</strong></div>
-          <div><small>Lucro</small><strong id="sim-lucro">R$ 0,00</strong></div>
-          <div><small>Margem</small><strong id="sim-margem">0,00%</strong></div>
-          <div><small>Vs. calculado</small><strong id="sim-dif">—</strong></div>
-        </div>
-        <div class="sim-trilho">
-          <input type="range" id="sim-range" min="0" max="100" step="0.01" value="0" aria-label="Preço de venda para testar" />
-          <div class="sim-marcas" aria-hidden="true">
-            <span class="sim-marca minimo" id="sim-marca-min"><i></i><b id="sim-min-txt"></b></span>
-            <span class="sim-marca calculado" id="sim-marca-calc"><i></i><b id="sim-calc-txt"></b></span>
-          </div>
-        </div>
-        <button type="button" class="btn sim-usar" id="sim-usar">Usar este preço</button>
-      </section>
-
       <div class="identidade">
         <label class="foto" id="foto" title="Adicionar foto">
           <input type="file" accept="image/*" id="foto-input" hidden />
