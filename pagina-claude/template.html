@@ -109,7 +109,6 @@ input, textarea, select { font: inherit; color: inherit; }
 .duas-colunas { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 @media (max-width: 480px) { .rotulo-linha { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
 .rotulo { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 12px; }
-.btn-adicionar { border: 1px solid var(--primaria); background: var(--painel); color: var(--primaria); border-radius: 6px; padding: 2px 10px; font-size: 11px; font-weight: 700; }
 .btn-adicionar:hover { background: var(--primaria); color: var(--sobre-primaria); }
 .produtos-lista { display: grid; gap: 6px; }
 .produto-linha { display: flex; align-items: center; gap: 6px; }
@@ -316,6 +315,43 @@ input, textarea, select { font: inherit; color: inherit; }
 .toast.visivel { opacity: 1; transform: translate(-50%, 0); }
 .toast.erro { background: var(--ruim); color: #fff; }
 @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+
+/* ---------- Polimento: sombras e profundidade ---------- */
+:root {
+  --sombra-campo: 0 1px 2px rgba(13, 35, 68, .07), 0 2px 6px rgba(13, 35, 68, .05);
+  --sombra-botao: 0 1px 2px rgba(13, 35, 68, .10), 0 2px 5px rgba(13, 35, 68, .06);
+  --sombra-botao-hover: 0 2px 4px rgba(13, 35, 68, .12), 0 6px 14px rgba(13, 35, 68, .10);
+  --anel-foco: 0 0 0 3px rgba(13, 35, 68, .14);
+}
+.painel { border-color: #e6eaf0; box-shadow: 0 1px 2px rgba(13, 35, 68, .05), 0 6px 18px rgba(13, 35, 68, .07), 0 18px 40px -12px rgba(13, 35, 68, .10); }
+.destaque { box-shadow: 0 4px 10px rgba(13, 35, 68, .18), 0 14px 32px -8px rgba(13, 35, 68, .35); }
+
+/* Campos: fundo claro, borda fina e sombra leve; foco com anel azul-marinho */
+.entrada-com-prefixo, .campo input[type=text], .campo textarea, .nome, .busca, .tags-entrada, .form-config input, .nova-loja input {
+  background: #f8f9fb; border: 1px solid #e1e6ee; box-shadow: var(--sombra-campo);
+  transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+}
+.entrada-com-prefixo input[type=text] { box-shadow: none !important; }
+.entrada-com-prefixo:focus-within, .campo input[type=text]:focus, .campo textarea:focus, .nome:focus, .busca:focus, .tags-entrada:focus-within, .form-config input:focus, .nova-loja input:focus {
+  background: #fff; border-color: var(--primaria); box-shadow: var(--sombra-campo), var(--anel-foco);
+}
+.produto-linha .entrada-com-prefixo, .extra-linha input, .extra-linha select { box-shadow: var(--sombra-campo); }
+.extra-linha input, .extra-linha select { background: #f8f9fb; border: 1px solid #e1e6ee; }
+
+/* Botões e seletores */
+.segmento { background: #eef1f5; box-shadow: inset 0 1px 2px rgba(13, 35, 68, .08); }
+.segmento button.ativo { box-shadow: 0 1px 3px rgba(13, 35, 68, .25); }
+.abas button, .btn, .btn-adicionar, .qtd button, .extras, .chip { box-shadow: var(--sombra-botao); transition: box-shadow .15s ease, transform .15s ease, background .15s ease; }
+.abas button:hover, .btn:hover, .btn-adicionar:hover, .qtd button:hover, .chip:hover { box-shadow: var(--sombra-botao-hover); }
+.abas button.ativo { box-shadow: 0 1px 3px rgba(13, 35, 68, .18), inset 0 0 0 1px var(--primaria); }
+.btn.primario { box-shadow: 0 2px 4px rgba(13, 35, 68, .20), 0 6px 14px -4px rgba(13, 35, 68, .35); }
+.btn:active, .abas button:active, .qtd button:active { transform: translateY(1px); box-shadow: var(--sombra-botao); }
+.extras { border-color: #e1e6ee; background: #fff; }
+.foto { box-shadow: var(--sombra-campo); background: #f8f9fb; transition: box-shadow .15s ease, background .15s ease; }
+.foto:hover { box-shadow: var(--sombra-botao-hover); background: #fff; }
+.kpis div { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06), 0 2px 6px rgba(0, 0, 0, .12); }
+.aviso { box-shadow: 0 1px 2px rgba(154, 52, 18, .06); }
+@media (prefers-reduced-motion: reduce) { .abas button, .btn, .btn-adicionar, .qtd button, .chip, .foto { transition: none; } .btn:active, .abas button:active, .qtd button:active { transform: none; } }
 </style>
 
 <header class="topo">
