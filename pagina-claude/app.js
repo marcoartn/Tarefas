@@ -49,7 +49,8 @@ function toast(msg, erro = false) {
   t.textContent = msg;
   t.className = `toast visivel${erro ? ' erro' : ''}`;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { t.className = 'toast'; }, 2800);
+  // Mensagens longas ficam mais tempo na tela (tempo de leitura).
+  toastTimer = setTimeout(() => { t.className = 'toast'; }, Math.max(2800, msg.length * 65));
 }
 
 function mensagemErroDb(e) {
@@ -781,7 +782,11 @@ function ligarEventos() {
   $('#foto-input').addEventListener('change', async (e) => {
     const f = e.target.files?.[0]; e.target.value = '';
     if (!f) return;
-    try { estado.imagem = await reduzirImagem(f); renderImagem(); } catch { toast('Não consegui ler essa imagem. Tente um JPG ou PNG.', true); }
+    try {
+      const { url, original } = await reduzirImagem(f);
+      estado.imagem = url; renderImagem();
+      if (original < FOTO_MINIMO_BOM) toast(`Imagem pequena (${original}×${original} px): vai ficar pixelada. Use a foto original do produto, não a miniatura.`, true);
+    } catch { toast('Não consegui ler essa imagem. Tente um JPG ou PNG.', true); }
   });
   $('#remover-foto').addEventListener('click', () => { estado.imagem = null; renderImagem(); });
 
@@ -1069,19 +1074,45 @@ async function renderPendentes() {
 }
 
 // Foto sempre quadrada (recorte central), no máx. 320px em JPEG, para caber no documento do banco.
-function reduzirImagem(arquivo, lado = 320) {
+const FOTO_LADO = 600;        // px do lado salvo (quadrado)
+const FOTO_MINIMO_BOM = 300; // abaixo disso a foto de origem vai ficar pixelada
+const FOTO_MAX_CHARS = 200000; // cabe folgado no documento do banco (limite 256 KB)
+
+// Recorta o centro em quadrado e reduz em etapas (metade por vez), o que evita o
+// serrilhado de reduzir de uma vez; depois comprime no JPEG de melhor qualidade que
+// caiba no banco. Nunca aumenta a foto: amplificar só deixaria borrado.
+function reduzirImagem(arquivo, lado = FOTO_LADO) {
   return new Promise((ok, falha) => {
     const img = new Image();
     img.onload = () => {
-      // Recorta o centro em quadrado e reduz para no máx. `lado` px.
-      const q = Math.min(img.width, img.height);
-      const tam = Math.min(lado, q);
-      const c = document.createElement('canvas');
-      c.width = tam; c.height = tam;
-      c.getContext('2d').drawImage(img, (img.width - q) / 2, (img.height - q) / 2, q, q, 0, 0, tam, tam);
       URL.revokeObjectURL(img.src);
-      const url = c.toDataURL('image/jpeg', 0.8);
-      url.length < 180000 ? ok(url) : ok(c.toDataURL('image/jpeg', 0.55));
+      const q = Math.min(img.naturalWidth, img.naturalHeight);
+      const quadrado = (tam) => {
+        let c = document.createElement('canvas');
+        c.width = q; c.height = q;
+        c.getContext('2d').drawImage(img, (img.naturalWidth - q) / 2, (img.naturalHeight - q) / 2, q, q, 0, 0, q, q);
+        while (c.width / 2 >= tam) {
+          const m = document.createElement('canvas');
+          m.width = Math.round(c.width / 2); m.height = m.width;
+          const g = m.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(c, 0, 0, m.width, m.height);
+          c = m;
+        }
+        if (c.width !== tam) {
+          const f = document.createElement('canvas');
+          f.width = tam; f.height = tam;
+          const g = f.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(c, 0, 0, tam, tam);
+          c = f;
+        }
+        return c;
+      };
+      for (const tam of [Math.min(lado, q), Math.min(480, q), Math.min(360, q)]) {
+        const c = quadrado(tam);
+        for (const qualidade of [0.9, 0.82, 0.72]) {
+          const url = c.toDataURL('image/jpeg', qualidade);
+          if (url.length <= FOTO_MAX_CHARS) return ok({ url, original: q, tam });
+        }
+      }
+      ok({ url: quadrado(Math.min(300, q)).toDataURL('image/jpeg', 0.6), original: q, tam: Math.min(300, q) });
     };
     img.onerror = falha;
     img.src = URL.createObjectURL(arquivo);
