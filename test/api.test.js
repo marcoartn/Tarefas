@@ -115,12 +115,12 @@ test('CRUD de anúncios com recálculo no servidor', async (t) => {
     tags: ['Ranqueamento', 'ranqueamento', 'Kit'], comentario: 'teste', preco: 1, resultado: { preco: 1 },
   });
   assert.equal(criado.status, 201);
-  assert.equal(criado.dados.resultado.preco, 24.29);
+  assert.equal(criado.dados.resultado.preco, 25);
   assert.deepEqual(criado.dados.tags, ['Ranqueamento', 'Kit']);
   const id = criado.dados.id;
 
   const editado = await api(`/anuncios/${id}`, 'PUT', { ...criado.dados, tipoVendedor: 'cnpj', tags: ['Kit'] });
-  assert.equal(editado.dados.resultado.preco, 20); // (10 + 4) / (1 - 0.2 - 0.1)
+  assert.equal(editado.dados.resultado.preco, 20.72); // (10 + 4.5) / (1 - 0.2 - 0.1) = 20.714…
   assert.deepEqual(editado.dados.tags, ['Kit']);
 
   const dup = await api(`/anuncios/${id}/duplicar`, 'POST');

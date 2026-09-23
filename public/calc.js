@@ -5,7 +5,7 @@
 export const TAXAS_PADRAO = Object.freeze({
   comissaoPct: 20,   // comissão + programa de frete (percentual sobre o preço)
   comissaoTeto: 100, // teto da comissão por item, em R$
-  taxaFixa: 4,       // taxa fixa por item vendido, em R$
+  taxaFixa: 4.5,     // taxa fixa por item vendido, em R$
   taxaCpf: 3,        // adicional por item para vendedor CPF, em R$
 });
 

@@ -6,8 +6,8 @@ const base = { tipoVendedor: 'cpf', custoProduto: 10, impostoPct: 0, custosVaria
 
 test('por margem: lucro entregue bate com a margem pedida', () => {
   const r = calcular({ ...base, modo: 'margem', margemPct: 10 });
-  // P = (10 + 4 + 3) / (1 - 0.20 - 0.10) = 24.2857… → 24.29
-  assert.equal(r.preco, 24.29);
+  // P = (10 + 4.5 + 3) / (1 - 0.20 - 0.10) = 25
+  assert.equal(r.preco, 25);
   assert.ok(r.margemReal >= 10);
   assert.equal(r.totalCustos + r.lucro, r.preco);
 });
@@ -15,14 +15,14 @@ test('por margem: lucro entregue bate com a margem pedida', () => {
 test('CNPJ não paga a taxa extra', () => {
   const r = calcular({ ...base, tipoVendedor: 'cnpj', modo: 'margem', margemPct: 0 });
   assert.equal(r.taxaCpf, 0);
-  assert.equal(r.preco, 17.5); // (10 + 4) / 0.8
+  assert.equal(r.preco, 18.13); // (10 + 4.5) / 0.8 = 18.125 → 18.13
 });
 
 test('por preço de venda: detalha e calcula lucro', () => {
   const r = calcular({ ...base, modo: 'preco', precoVenda: 30, impostoPct: 6 });
   assert.equal(r.comissao, 6);
   assert.equal(r.imposto, 1.8);
-  assert.equal(r.lucro, 5.2); // 30 - 10 - 6 - 1,80 - 4 - 3
+  assert.equal(r.lucro, 4.7); // 30 - 10 - 6 - 1,80 - 4,50 - 3
 });
 
 test('por lucro desejado', () => {
@@ -77,11 +77,11 @@ test('caminho do banco: DB_PATH > volume do Railway > ./data', async () => {
 test('tela vazia mostra as taxas por item e lucro zero', () => {
   const cpf = calcular({});
   assert.equal(cpf.preco, 0);
-  assert.equal(cpf.taxaFixa, 4);
+  assert.equal(cpf.taxaFixa, 4.5);
   assert.equal(cpf.taxaCpf, 3);
-  assert.equal(cpf.totalCustos, 7);
+  assert.equal(cpf.totalCustos, 7.5);
   assert.equal(cpf.lucro, 0);
   const cnpj = calcular({ tipoVendedor: 'cnpj' });
   assert.equal(cnpj.taxaCpf, 0);
-  assert.equal(cnpj.totalCustos, 4);
+  assert.equal(cnpj.totalCustos, 4.5);
 });
