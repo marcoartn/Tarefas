@@ -63,6 +63,7 @@ test('arredondamento de centavos nunca entrega margem abaixo da pedida', () => {
     for (const margemPct of [5, 7, 12, 18, 25]) {
       const r = calcular({ ...base, custoProduto: custo, impostoPct: 4, custosVariaveis: 1.5, modo: 'margem', margemPct });
       assert.ok(r.lucro >= Math.round(r.preco * margemPct) / 100, `custo ${custo} margem ${margemPct}: ${r.preco} → ${r.lucro}`);
+      assert.ok(r.margemReal >= margemPct, `custo ${custo} margem ${margemPct}: margem real ${r.margemReal}`);
     }
   }
 });
@@ -110,4 +111,9 @@ test('bate com o FaciliteMax: custo 12, imposto 4%, variáveis 1,50, margem 0%, 
   assert.equal(r.imposto, 1.08);
   assert.equal(r.totalCustos, 26.97);
   assert.equal(r.lucro, 0);
+});
+
+test('margem real nunca aparece abaixo da pedida (caso R$ 15,75 → 6,98%)', () => {
+  const r = calcular({ tipoVendedor: 'cpf', custoProduto: 4, impostoPct: 0, custosVariaveis: 0, modo: 'margem', margemPct: 7 });
+  assert.ok(r.margemReal >= 7, `margem real ${r.margemReal}`);
 });

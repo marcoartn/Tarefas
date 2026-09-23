@@ -120,7 +120,7 @@ test('CRUD de anúncios com recálculo no servidor', async (t) => {
   const id = criado.dados.id;
 
   const editado = await api(`/anuncios/${id}`, 'PUT', { ...criado.dados, tipoVendedor: 'cnpj', tags: ['Kit'] });
-  assert.equal(editado.dados.resultado.preco, 20.71); // (10 + 4.5) / (1 - 0.2 - 0.1) = 20.714…
+  assert.equal(editado.dados.resultado.preco, 20.72); // 20,71 daria margem real de 9,995%
   assert.deepEqual(editado.dados.tags, ['Kit']);
 
   const dup = await api(`/anuncios/${id}/duplicar`, 'POST');

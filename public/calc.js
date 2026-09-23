@@ -128,7 +128,8 @@ export function calcular(entrada) {
   // Arredonda para o centavo mais próximo (como o FaciliteMax) e, como comissão e
   // imposto também são arredondados em centavos, sobe de centavo em centavo só se
   // o lucro real ficar abaixo do pedido. Resultado: o menor preço que entrega a meta.
-  const atingiu = (d) => (e.modo === 'margem' ? d.lucro >= r2(d.preco * e.margemPct / 100) : d.lucro >= r2(e.lucroDesejado));
+  // No modo margem, a margem real exata (lucro ÷ preço) nunca fica abaixo da pedida.
+  const atingiu = (d) => (e.modo === 'margem' ? d.lucro >= d.preco * e.margemPct / 100 - 1e-9 : d.lucro >= r2(e.lucroDesejado));
   let d = detalharPreco(r2(preco), e);
   for (let i = 0; i < 20 && !atingiu(d); i++) d = detalharPreco(r2(d.preco + 0.01), e);
   return { entrada: e, ...d };
