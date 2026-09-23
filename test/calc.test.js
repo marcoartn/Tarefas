@@ -85,3 +85,19 @@ test('tela vazia mostra as taxas por item e lucro zero', () => {
   assert.equal(cnpj.taxaCpf, 0);
   assert.equal(cnpj.totalCustos, 4.5);
 });
+
+test('kit com vários produtos soma custo × quantidade de cada um', () => {
+  const r = calcular({ ...base, produtos: [{ custo: '5,00', quantidade: 2 }, { custo: 4, quantidade: 1 }], modo: 'preco', precoVenda: 40 });
+  assert.equal(r.custoProdutoTotal, 14);
+  assert.equal(r.entrada.produtos.length, 2);
+  // Mesmo preço que um produto único de R$ 14
+  const unico = calcular({ ...base, custoProduto: 14, modo: 'margem', margemPct: 10 });
+  const kit = calcular({ ...base, produtos: [{ custo: 5, quantidade: 2 }, { custo: 4, quantidade: 1 }], modo: 'margem', margemPct: 10 });
+  assert.equal(kit.preco, unico.preco);
+});
+
+test('formato antigo (custoProduto + quantidade) continua funcionando', () => {
+  const r = calcular({ ...base, custoProduto: 3, quantidade: 4, modo: 'preco', precoVenda: 30 });
+  assert.deepEqual(r.entrada.produtos, [{ custo: 3, quantidade: 4 }]);
+  assert.equal(r.custoProdutoTotal, 12);
+});

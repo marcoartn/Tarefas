@@ -16,13 +16,26 @@ const num = (v) => {
 const r2 = (v) => Math.round((v + Number.EPSILON) * 100) / 100;
 const ceil2 = (v) => Math.ceil(r2(v * 100) - 1e-9) / 100;
 
+const qtdValida = (v) => Math.min(999, Math.max(1, Math.floor(num(v) || 1)));
+
 export function normalizarEntrada(e = {}) {
   const taxas = { ...TAXAS_PADRAO, ...(e.taxas || {}) };
   for (const k of Object.keys(TAXAS_PADRAO)) taxas[k] = Math.max(0, num(taxas[k]));
+  // Kits: vários produtos, cada um com custo e quantidade. Sem a lista,
+  // usa o formato antigo (um custo só) para os anúncios já salvos.
+  const listaProdutos = Array.isArray(e.produtos) && e.produtos.length
+    ? e.produtos
+    : [{ custo: e.custoProduto, quantidade: e.quantidade }];
+  const produtos = listaProdutos.slice(0, 20).map((p) => ({
+    custo: Math.max(0, num(p?.custo)),
+    quantidade: qtdValida(p?.quantidade),
+  }));
   return {
     tipoVendedor: e.tipoVendedor === 'cnpj' ? 'cnpj' : 'cpf',
-    custoProduto: Math.max(0, num(e.custoProduto)),
-    quantidade: Math.max(1, Math.floor(num(e.quantidade) || 1)),
+    produtos,
+    // Espelho do primeiro produto, para quem ainda lê os campos antigos.
+    custoProduto: produtos[0].custo,
+    quantidade: produtos[0].quantidade,
     impostoPct: Math.max(0, num(e.impostoPct)),
     custosVariaveis: Math.max(0, num(e.custosVariaveis)),
     extras: (Array.isArray(e.extras) ? e.extras : [])
@@ -40,10 +53,12 @@ export function normalizarEntrada(e = {}) {
   };
 }
 
+const somaProdutos = (e) => r2(e.produtos.reduce((s, p) => s + p.custo * p.quantidade, 0));
+
 // Detalha custos e lucro para um preço de venda já definido.
 export function detalharPreco(preco, e) {
   const { taxas } = e;
-  const custoProdutoTotal = r2(e.custoProduto * e.quantidade);
+  const custoProdutoTotal = somaProdutos(e);
   const comissaoBruta = preco * taxas.comissaoPct / 100;
   const comissaoLimitada = taxas.comissaoTeto > 0 && comissaoBruta > taxas.comissaoTeto;
   const comissao = r2(comissaoLimitada ? taxas.comissaoTeto : comissaoBruta);
@@ -81,7 +96,7 @@ export function detalharPreco(preco, e) {
 // onde lucro(P) = P·m (modo margem) ou L (modo lucro).
 function resolverPreco(e) {
   const { taxas } = e;
-  const fixos = e.custoProduto * e.quantidade + e.custosVariaveis
+  const fixos = somaProdutos(e) + e.custosVariaveis
     + e.extras.filter((x) => x.tipo === 'fixo').reduce((s, x) => s + x.valor, 0)
     + taxas.taxaFixa + (e.tipoVendedor === 'cpf' ? taxas.taxaCpf : 0);
   const pct = (e.impostoPct + e.extras.filter((x) => x.tipo === 'percentual').reduce((s, x) => s + x.valor, 0)) / 100;
@@ -105,7 +120,7 @@ export function calcular(entrada) {
   const e = normalizarEntrada(entrada);
   if (e.modo === 'preco') return { entrada: e, ...detalharPreco(e.precoVenda, e) };
 
-  const vazio = e.custoProduto === 0 && e.custosVariaveis === 0 && e.extras.length === 0
+  const vazio = e.produtos.every((p) => p.custo === 0) && e.custosVariaveis === 0 && e.extras.length === 0
     && (e.modo === 'margem' || e.lucroDesejado === 0);
   if (vazio) return { entrada: e, ...detalharPreco(0, e) };
 

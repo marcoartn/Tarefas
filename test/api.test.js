@@ -136,6 +136,10 @@ test('CRUD de anúncios com recálculo no servidor', async (t) => {
   assert.equal((await api(`/anuncios/${id}`)).status, 404);
   assert.deepEqual((await api('/tags')).dados.map((x) => x.tag).sort(), ['Completo', 'Kit']);
 
+  const kit = await api('/anuncios', 'POST', { nome: 'Kit', produtos: [{ custo: 5, quantidade: 2 }, { custo: 4, quantidade: 1 }], modo: 'preco', precoVenda: 40 });
+  assert.deepEqual((await api(`/anuncios/${kit.dados.id}`)).dados.produtos, [{ custo: 5, quantidade: 2 }, { custo: 4, quantidade: 1 }]);
+  assert.equal(kit.dados.resultado.totalCustos, 14 + 8 + 4.5 + 3);
+
   assert.equal((await api('/anuncios', 'POST', { custoProduto: 10 })).status, 400);
   assert.equal((await api('/anuncios', 'POST', { nome: 'x', custoProduto: 10, margemPct: 90 })).status, 400);
 });

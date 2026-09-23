@@ -44,6 +44,7 @@ export function abrirBanco(caminho) {
       -- entradas
       tipo_vendedor      TEXT    NOT NULL CHECK (tipo_vendedor IN ('cpf','cnpj')),
       custo_produto      REAL    NOT NULL,
+      produtos           TEXT    NOT NULL DEFAULT '[]', -- kit: [{custo, quantidade}]
       quantidade         INTEGER NOT NULL,
       imposto_pct        REAL    NOT NULL,
       custos_variaveis   REAL    NOT NULL,
@@ -82,6 +83,9 @@ export function abrirBanco(caminho) {
   const colunas = db.prepare('PRAGMA table_info(anuncios)').all().map((c) => c.name);
   if (!colunas.includes('loja_id')) {
     db.exec('ALTER TABLE anuncios ADD COLUMN loja_id INTEGER REFERENCES lojas(id) ON DELETE CASCADE');
+  }
+  if (!colunas.includes('produtos')) {
+    db.exec("ALTER TABLE anuncios ADD COLUMN produtos TEXT NOT NULL DEFAULT '[]'");
   }
   db.exec('CREATE INDEX IF NOT EXISTS idx_anuncios_loja ON anuncios(loja_id, atualizado_em)');
   return db;

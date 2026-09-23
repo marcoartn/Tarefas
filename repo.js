@@ -117,7 +117,7 @@ function consultas(db) {
   };
 
   const COLUNAS = [
-    'loja_id', 'nome', 'comentario', 'imagem', 'tipo_vendedor', 'custo_produto', 'quantidade', 'imposto_pct',
+    'loja_id', 'nome', 'comentario', 'imagem', 'tipo_vendedor', 'custo_produto', 'produtos', 'quantidade', 'imposto_pct',
     'custos_variaveis', 'extras', 'modo', 'margem_pct', 'preco_venda_input', 'lucro_desejado',
     'comissao_pct', 'comissao_teto', 'taxa_fixa', 'taxa_cpf', 'preco', 'comissao', 'imposto',
     'extras_total', 'total_custos', 'lucro', 'margem_real',
@@ -161,6 +161,7 @@ function criarRepoLoja(db, lojaId) {
         imagem,
         tipo_vendedor: entrada.tipoVendedor,
         custo_produto: entrada.custoProduto,
+        produtos: JSON.stringify(entrada.produtos),
         quantidade: entrada.quantidade,
         imposto_pct: entrada.impostoPct,
         custos_variaveis: entrada.custosVariaveis,
@@ -194,6 +195,7 @@ function criarRepoLoja(db, lojaId) {
       tags,
       tipoVendedor: l.tipo_vendedor,
       custoProduto: l.custo_produto,
+      produtos: (() => { const p = JSON.parse(l.produtos || '[]'); return p.length ? p : [{ custo: l.custo_produto, quantidade: l.quantidade }]; })(),
       quantidade: l.quantidade,
       impostoPct: l.imposto_pct,
       custosVariaveis: l.custos_variaveis,
