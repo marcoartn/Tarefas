@@ -40,6 +40,7 @@ const estado = {
   resultado: null,
   confirmandoApagar: null,
   comentariosAbertos: new Set(),
+  soMargemBaixa: false,
 };
 
 let toastTimer;
@@ -114,6 +115,7 @@ function renderResultado() {
   $('#destaque').classList.toggle('negativo', r.lucro < 0);
   $('#erro-calculo').hidden = !r.erro;
   $('#erro-calculo').textContent = r.erro || '';
+  renderAlertaMargem(r);
 
   const linhas = [
     ...(r.entrada.produtos.length > 1
@@ -137,6 +139,18 @@ function renderResultado() {
   // O simulador volta ao preço calculado sempre que os dados mudam.
   estado.simPreco = r.preco;
   renderSimulador();
+}
+
+function renderAlertaMargem(r = estado.resultado) {
+  const el = $('#alerta-margem');
+  const min = margemMinima();
+  const baixo = r && r.preco > 0 && !r.erro && r.margemReal < min - 1e-9;
+  el.hidden = !baixo;
+  if (!baixo) return;
+  el.classList.toggle('prejuizo', r.lucro < 0);
+  $('#alerta-margem-txt').textContent = r.lucro < 0
+    ? `Prejuízo de ${brl(-r.lucro)} por venda`
+    : `Cuidado: margem baixa (${pct2(r.margemReal)}, mínimo ${pct(min)})`;
 }
 
 // ---------- Gráfico "Para onde vai o seu preço" ----------
@@ -333,13 +347,25 @@ function definirEdicao(anuncio) {
 // nos modos por preço ou por lucro não há margem escolhida, então vale a real.
 const margemExibida = (a) => (a.modo === 'margem' ? Number(a.margemPct) || 0 : a.resultado.margemReal);
 
-function classeMargem(m) { return m >= 15 ? 'bom' : m >= 8 ? 'medio' : 'ruim'; }
+const MARGEM_MIN_PADRAO = 8;
+const margemMinima = () => {
+  const v = Number(lojaAtual()?.margemMinima);
+  return Number.isFinite(v) && v >= 0 ? v : MARGEM_MIN_PADRAO;
+};
+const abaixoDoMinimo = (a) => margemExibida(a) < margemMinima() - 1e-9;
+const ALERTA_SVG = '<svg class="icone-alerta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17h.01"/></svg>';
+// Vermelho abaixo do seu mínimo, verde a partir de 15% (ou do mínimo, se for maior), amarelo no meio.
+function classeMargem(m) {
+  const min = margemMinima();
+  return m < min - 1e-9 ? 'ruim' : m >= Math.max(15, min) ? 'bom' : 'medio';
+}
 
 function anunciosFiltrados() {
   const termo = $('#busca').value.trim().toLowerCase();
   const filtro = [...estado.filtroTags].map((t) => t.toLowerCase());
   return estado.anuncios.filter((a) => {
     if (termo && !a.nome.toLowerCase().includes(termo) && !(a.comentario || '').toLowerCase().includes(termo)) return false;
+    if (estado.soMargemBaixa && !abaixoDoMinimo(a)) return false;
     if (!filtro.length) return true;
     const minhas = (a.tags || []).map((t) => t.toLowerCase());
     const temTodas = filtro.every((t) => minhas.includes(t));
@@ -360,7 +386,20 @@ function renderChips() {
   $('#tags-sugestoes').innerHTML = todas.map(({ tag }) => `<option value="${esc(tag)}"></option>`).join('');
 }
 
+function renderFiltroMargem() {
+  const total = estado.anuncios.filter(abaixoDoMinimo).length;
+  if (!total) estado.soMargemBaixa = false;
+  const b = $('#filtro-baixa');
+  b.hidden = !total;
+  b.setAttribute('aria-pressed', String(estado.soMargemBaixa));
+  b.innerHTML = `${ALERTA_SVG.replace('icone-alerta', '')}Margem baixa (${total})`;
+  const inp = $('#margem-min');
+  if (document.activeElement !== inp) inp.value = paraTexto(margemMinima()) || '0';
+  inp.disabled = !lojaAtual();
+}
+
 function renderLista() {
+  renderFiltroMargem();
   const itens = anunciosFiltrados();
   $('#total').textContent = `(${estado.anuncios.length})`;
   $('#lista').className = `lista${estado.visao === 'grade' ? ' grade' : ''}`;
@@ -369,7 +408,9 @@ function renderLista() {
   if (itens.length) {
     const lucroTotal = itens.reduce((s, a) => s + a.resultado.lucro, 0);
     const margemMedia = itens.reduce((s, a) => s + a.resultado.margemReal, 0) / itens.length;
-    $('#resumo').textContent = `${itens.length} anúncio(s) · lucro médio ${brl(lucroTotal / itens.length)} · margem média ${pct(margemMedia)}`;
+    const baixos = itens.filter(abaixoDoMinimo).length;
+    $('#resumo').textContent = `${itens.length} anúncio(s) · lucro médio ${brl(lucroTotal / itens.length)} · margem média ${pct(margemMedia)}`
+      + (baixos ? ` · ${baixos} abaixo de ${pct(margemMinima())}` : '');
   } else {
     $('#resumo').textContent = '';
   }
@@ -397,7 +438,7 @@ function renderLista() {
             ${(a.tags || []).length ? `<span class="tags-item">${a.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join('')}</span>` : ''}
           </div>
         </div>
-        <span class="margem-txt ${classeMargem(margemExibida(a))}" title="Margem real: ${pct2(r.margemReal)}">Margem: ${pct2(margemExibida(a))}</span>
+        <span class="margem-txt ${classeMargem(margemExibida(a))}" title="Margem real: ${pct2(r.margemReal)}${abaixoDoMinimo(a) ? ` · abaixo do mínimo de ${pct(margemMinima())}` : ''}">${abaixoDoMinimo(a) ? ALERTA_SVG : ''}Margem: ${pct2(margemExibida(a))}</span>
         ${a.comentario ? `<button type="button" class="btn-comentario" data-acao="comentario" aria-expanded="${aberto}" title="${esc(a.comentario)}" aria-label="Ver comentário">${ICONES.comentario}</button>` : ''}
         ${a.comentario && aberto ? `<div class="comentario-aberto">${esc(a.comentario)}</div>` : ''}
       </div>
@@ -553,6 +594,7 @@ function selecionarLoja(id) {
   estado.anuncios = [];
   estado.carregado = false;
   estado.filtroTags.clear();
+  estado.soMargemBaixa = false;
   $('#busca').value = '';
   if (id) lsSet('loja', id);
   aplicarTaxasDaLoja();
@@ -622,7 +664,7 @@ function ligarBanco(db) {
       .sort((a, b) => String(a.criadoEm).localeCompare(String(b.criadoEm)));
     const alvo = estado.lojas.some((l) => l.id === estado.lojaId) ? estado.lojaId : (estado.lojas[0]?.id ?? null);
     if (alvo !== estado.lojaId || !estado.pararAnuncios) selecionarLoja(alvo);
-    else aplicarTaxasDaLoja();
+    else { aplicarTaxasDaLoja(); renderLista(); } // margem mínima pode ter mudado
     renderSeletorLoja();
     if (!$('#lojas').hidden || !estado.lojas.length) {
       if ($('#lojas').hidden) abrirLojas(); else renderLojas();
@@ -776,6 +818,21 @@ function ligarEventos() {
     renderChips(); renderLista();
   });
   $('#busca').addEventListener('input', renderLista);
+  $('#filtro-baixa').addEventListener('click', () => { estado.soMargemBaixa = !estado.soMargemBaixa; renderLista(); });
+  let timerMargemMin;
+  $('#margem-min').addEventListener('input', (e) => {
+    const v = Number(e.target.value.replace(',', '.'));
+    if (!Number.isFinite(v) || v < 0 || v >= 100 || !lojaAtual()) return;
+    const loja = lojaAtual();
+    loja.margemMinima = v; // aplica já na tela; grava no banco após uma pausa
+    renderLista(); renderAlertaMargem();
+    clearTimeout(timerMargemMin);
+    timerMargemMin = setTimeout(async () => {
+      if (!estado.db) return;
+      try { await estado.db.doc(`lojas/${loja.id}`).update({ margemMinima: v }); }
+      catch (err) { toast(mensagemErroDb(err), true); }
+    }, 700);
+  });
 
   let timerConfirmar;
   $('#lista').addEventListener('click', async (e) => {

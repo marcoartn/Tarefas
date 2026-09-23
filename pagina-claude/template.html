@@ -307,6 +307,17 @@ input, textarea, select { font: inherit; color: inherit; }
 .lojas-marca { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 16px; background: var(--circuito), var(--primaria); color: var(--teal); margin-bottom: 12px; }
 .lojas-marca .a-marca { width: 46px; height: 46px; }
 .rodape { max-width: 1120px; margin: 0 auto; padding: 18px 16px 28px; text-align: center; color: var(--teal-escuro); font-size: 13px; }
+.alerta-margem { display: inline-flex; align-items: center; gap: 6px; margin: 10px 0 0; background: #fff4e5; color: #9a3412; border-radius: 999px; padding: 4px 12px 4px 8px; font-size: 12px; font-weight: 700; }
+.alerta-margem.prejuizo { background: #fee2e2; color: var(--ruim); }
+.alerta-margem svg { width: 16px; height: 16px; flex: none; }
+.filtros-margem { margin-top: -4px; justify-content: space-between; }
+.margem-min { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--sutil); margin-left: auto; }
+.margem-min .entrada-com-prefixo.curta { width: 72px; }
+.margem-min input { padding: 5px 4px 5px 10px !important; }
+.chip-alerta { display: inline-flex; align-items: center; gap: 6px; border-color: var(--ruim); color: var(--ruim); }
+.chip-alerta svg { width: 13px; height: 13px; }
+.chip-alerta[aria-pressed="true"] { background: var(--ruim); color: #fff; }
+.icone-alerta { display: inline-block; width: 13px; height: 13px; vertical-align: -2px; margin-right: 3px; }
 .modal { position: fixed; inset: 0; background: rgba(8, 20, 18, .55); display: grid; place-items: center; padding: 16px; z-index: 30; }
 .form-config { background: var(--painel); border-radius: var(--raio); padding: 20px 22px; width: min(420px, 100%); box-shadow: 0 20px 60px rgba(0,0,0,.3); max-height: 90vh; overflow: auto; }
 .form-config h2 { margin-top: 0; font-size: 18px; color: var(--texto); text-transform: none; letter-spacing: 0; }
@@ -407,6 +418,7 @@ input, textarea, select { font: inherit; color: inherit; }
           <div><small>Margem real</small><strong id="kpi-margem" class="num">0%</strong></div>
           <div><small>Markup</small><strong id="kpi-markup" class="num">—</strong></div>
         </div>
+        <p class="alerta-margem" id="alerta-margem" role="status" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17h.01"/></svg><span id="alerta-margem-txt"></span></p>
       </div>
       <p class="erro" id="erro-calculo" hidden></p>
 
@@ -485,6 +497,12 @@ input, textarea, select { font: inherit; color: inherit; }
         <button type="button" data-v="somente" title="Anúncios cujas tags são exatamente as marcadas">Somente</button>
       </div>
       <div class="chips" id="chips-tags"></div>
+    </div>
+    <div class="filtros filtros-margem">
+      <button type="button" class="chip chip-alerta" id="filtro-baixa" aria-pressed="false" hidden></button>
+      <label class="margem-min">Alerta abaixo de
+        <span class="entrada-com-prefixo curta"><input id="margem-min" type="text" inputmode="decimal" value="8" aria-label="Margem mínima para alerta" /><em>%</em></span>
+      </label>
     </div>
     <input id="busca" class="busca" type="search" placeholder="Buscar por nome ou comentário…" aria-label="Buscar anúncio" />
     <div id="resumo" class="resumo"></div>
