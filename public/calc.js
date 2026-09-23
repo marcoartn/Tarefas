@@ -9,8 +9,15 @@ export const TAXAS_PADRAO = Object.freeze({
   taxaCpf: 3,        // adicional por item para vendedor CPF, em R$
 });
 
+// Lê números no formato brasileiro: "12,50", "1.234,56", "R$ 12,50", "15 %".
+// Com vírgula, pontos são milhar; sem vírgula, um ponto só é decimal ("4.5").
 const num = (v) => {
-  const n = typeof v === 'string' ? Number(v.replace(',', '.')) : Number(v);
+  if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
+  let s = String(v ?? '').replace(/[R$%\s]/g, '');
+  if (!s) return 0;
+  if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
+  else if ((s.match(/\./g) || []).length > 1) s = s.replace(/\./g, '');
+  const n = Number(s);
   return Number.isFinite(n) ? n : 0;
 };
 const r2 = (v) => Math.round((v + Number.EPSILON) * 100) / 100;
@@ -45,9 +52,10 @@ export function normalizarEntrada(e = {}) {
       }))
       .filter((x) => x.nome || x.valor > 0),
     modo: ['margem', 'preco', 'lucro'].includes(e.modo) ? e.modo : 'margem',
-    margemPct: num(e.margemPct),
+    // Metas negativas (prejuízo planejado) quase sempre são erro de digitação: viram 0.
+    margemPct: Math.max(0, num(e.margemPct)),
     precoVenda: Math.max(0, num(e.precoVenda)),
-    lucroDesejado: num(e.lucroDesejado),
+    lucroDesejado: Math.max(0, num(e.lucroDesejado)),
     taxas,
   };
 }
@@ -55,8 +63,10 @@ export function normalizarEntrada(e = {}) {
 const somaProdutos = (e) => r2(e.produtos.reduce((s, p) => s + p.custo * p.quantidade, 0));
 
 // Detalha custos e lucro para um preço de venda já definido.
-export function detalharPreco(preco, e) {
+export function detalharPreco(precoInformado, e) {
   const { taxas } = e;
+  // Tudo é calculado sobre o preço já em centavos, o mesmo que vai para a Shopee.
+  const preco = r2(Math.max(0, num(precoInformado)));
   const custoProdutoTotal = somaProdutos(e);
   const comissaoBruta = preco * taxas.comissaoPct / 100;
   const comissaoLimitada = taxas.comissaoTeto > 0 && comissaoBruta > taxas.comissaoTeto;
@@ -74,7 +84,7 @@ export function detalharPreco(preco, e) {
   // Sem preço ainda não há venda, então não mostramos prejuízo.
   const lucro = preco > 0 ? r2(preco - totalCustos) : 0;
   return {
-    preco: r2(preco),
+    preco,
     custoProdutoTotal,
     custosVariaveis: r2(e.custosVariaveis),
     extras,
@@ -86,7 +96,8 @@ export function detalharPreco(preco, e) {
     taxaCpf,
     totalCustos,
     lucro,
-    margemReal: preco > 0 ? r2((lucro / preco) * 100) : 0,
+    // Truncada (nunca arredondada para cima): a tela nunca mostra margem maior que a real.
+    margemReal: preco > 0 ? Math.floor((lucro / preco) * 10000 + 1e-7) / 100 : 0,
     markup: custoProdutoTotal > 0 ? r2(preco / custoProdutoTotal) : 0,
   };
 }
@@ -125,12 +136,13 @@ export function calcular(entrada) {
 
   const { preco, erro } = resolverPreco(e);
   if (erro) return { entrada: e, erro, ...detalharPreco(0, e) };
-  // Arredonda para o centavo mais próximo (como o FaciliteMax) e, como comissão e
-  // imposto também são arredondados em centavos, sobe de centavo em centavo só se
-  // o lucro real ficar abaixo do pedido. Resultado: o menor preço que entrega a meta.
-  // No modo margem, a margem real exata (lucro ÷ preço) nunca fica abaixo da pedida.
+  // A fórmula dá o preço exato; como comissão, imposto e extras são arredondados em
+  // centavos, o preço final é buscado centavo a centavo: começa um pouco abaixo e
+  // para no PRIMEIRO preço que entrega a meta. Resultado: o menor preço possível que
+  // garante a margem real exata (lucro ÷ preço) ou o lucro pedido.
   const atingiu = (d) => (e.modo === 'margem' ? d.lucro >= d.preco * e.margemPct / 100 - 1e-9 : d.lucro >= r2(e.lucroDesejado));
-  let d = detalharPreco(r2(preco), e);
-  for (let i = 0; i < 20 && !atingiu(d); i++) d = detalharPreco(r2(d.preco + 0.01), e);
+  let centavos = Math.max(1, Math.floor(preco * 100) - 5);
+  let d = detalharPreco(centavos / 100, e);
+  for (let i = 0; i < 100000 && !atingiu(d); i++) d = detalharPreco(++centavos / 100, e);
   return { entrada: e, ...d };
 }
