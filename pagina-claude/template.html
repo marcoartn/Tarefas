@@ -251,20 +251,25 @@ input, textarea, select { font: inherit; color: inherit; }
 .segmento.icones button { padding: 5px 10px; display: inline-grid; place-items: center; }
 .segmento.icones svg { width: 16px; height: 16px; }
 
-.lista.grade { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
-.lista.grade .item { flex-direction: column; }
-.lista.grade .thumb { width: 100%; height: auto; margin: 0; border-radius: 0; align-self: stretch; }
-.lista.grade .thumb { background: var(--circuito), var(--primaria); }
-.lista.grade .thumb .a-marca { width: 64px; height: 64px; }
-.lista.grade .corpo { align-items: flex-start; flex-direction: column; gap: 6px; }
-.lista.grade .info { max-width: 100%; width: 100%; }
-.lista.grade .btn-comentario { position: absolute; }
-.lista.grade .item { position: relative; }
-.lista.grade .btn-comentario { top: 6px; right: 6px; margin: 0; background: var(--painel); }
-.lista.grade .corpo > .margem-txt { padding-top: 0; }
-.lista.grade .botoes { padding: 0 8px 8px; }
-.lista.grade .comentario-aberto { flex-basis: auto; width: 100%; }
-.lista.grade .nome-item { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.lista.grade { grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 12px; }
+.lista.grade .item { flex-direction: column; position: relative; min-height: 0; }
+.lista.grade .thumb { width: 100%; height: auto; aspect-ratio: 1; margin: 0; border-radius: 0; align-self: stretch; background: var(--circuito), var(--primaria); }
+.lista.grade .thumb .a-marca { width: 48px; height: 48px; }
+.lista.grade .corpo { flex-direction: column; align-items: flex-start; gap: 3px; padding: 8px 9px 4px; }
+/* Na grade, .info e .lucro-linha "somem" como caixa para que nome, preço, lucro,
+   margem, tags e comentário virem uma coluna só, na ordem do FaciliteMax. */
+.lista.grade .info, .lista.grade .lucro-linha { display: contents; }
+.lista.grade .nome-item, .lista.grade .preco-item, .lista.grade .lucro-item { order: 1; line-height: 1.3; }
+.lista.grade .nome-item { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; width: 100%; margin-bottom: 5px; }
+.lista.grade .preco-item { font-size: 11.5px; }
+.lista.grade .lucro-item { font-size: 11px; }
+.lista.grade .lucro-item .kit { display: none; }
+.lista.grade .corpo > .margem-txt { order: 2; padding: 0; font-size: 11.5px; }
+.lista.grade .tags-item { order: 3; }
+.lista.grade .corpo > .desatualizado { order: 3; }
+.lista.grade .btn-comentario { order: 4; position: static; align-self: flex-start; margin: 0 0 0 -4px; width: 24px; height: 24px; background: transparent; }
+.lista.grade .comentario-aberto { order: 5; flex-basis: auto; width: 100%; margin-top: 2px; }
+.lista.grade .botoes { justify-content: center; gap: 6px; padding: 6px 8px 10px; margin-top: auto; }
 @media (max-width: 600px) {
   .info { max-width: 100%; flex-basis: 100%; }
   .nome-item { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
