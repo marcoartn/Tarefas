@@ -1,0 +1,537 @@
+<title>Algoritmo Custos</title>
+<style>
+/* Identidade: fundo branco, azul-marinho da QES Assessoria como cor dominante,
+   texto preto. Tema único claro, escolhido de propósito. */
+:root {
+  color-scheme: light;
+  --fundo: #ffffff;
+  --painel: #ffffff;
+  --borda: #e2e6ed;
+  --campo: #f2f4f7;
+  --campo-foco: #ffffff;
+  --texto: #0b0b0c;
+  --sutil: #5a6270;
+  --primaria: #0d2344;
+  --primaria-forte: #081831;
+  --primaria-suave: #e7edf6;
+  --primaria-texto: #0d2344;
+  --sobre-primaria: #ffffff;
+  --azul-claro: #3b82f6;
+  --topo: #0d2344;
+  --topo-texto: #ffffff;
+  --topo-marca: #2cc5b8;
+  --teal: #2cc5b8;
+  --teal-escuro: #0f8f84;
+  --bom: #15803d; --bom-fundo: #dcfce7;
+  --medio: #a16207; --medio-fundo: #fef3c7;
+  --ruim: #c81e1e; --ruim-fundo: #fee2e2;
+  --aviso-fundo: #fff7ed; --aviso-borda: #fed7aa; --aviso-texto: #9a3412;
+  --destaque-a: #0d2344; --destaque-b: #1b3d70;
+  --neg-a: #b91c1c; --neg-b: #7f1d1d;
+  --sombra: 0 1px 2px rgba(13, 35, 68, .06), 0 4px 14px rgba(13, 35, 68, .07);
+  --raio: 12px;
+  --circuito: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='120'%3E%3Cg fill='none' stroke='%237fb2ff' stroke-opacity='.16' stroke-width='1'%3E%3Cpath d='M0 30h38l18 18h46'/%3E%3Cpath d='M180 92h-34l-16-16H96'/%3E%3Cpath d='M58 120V98l14-14'/%3E%3Cpath d='M132 0v18l12 12h36'/%3E%3C/g%3E%3Cg fill='%232cc5b8' fill-opacity='.35'%3E%3Ccircle cx='102' cy='48' r='2.4'/%3E%3Ccircle cx='96' cy='76' r='2.4'/%3E%3Ccircle cx='72' cy='84' r='2.4'/%3E%3Ccircle cx='38' cy='30' r='1.8'/%3E%3Ccircle cx='144' cy='30' r='1.8'/%3E%3C/g%3E%3C/svg%3E");
+  font-family: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: var(--texto);
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--fundo); color: var(--texto); font-size: 13px; }
+h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; margin: 18px 0 8px; color: var(--sutil); font-weight: 700; }
+h3 { font-size: 13px; margin: 18px 0 8px; }
+button { font: inherit; cursor: pointer; color: inherit; }
+input, textarea, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--primaria); outline-offset: 2px; }
+.num { font-variant-numeric: tabular-nums; }
+
+.topo { background: var(--circuito), var(--topo); color: var(--topo-texto); display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 16px; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; }
+.marca { display: inline-grid; color: var(--topo-texto); line-height: 1; padding: 10px 0 0 4px; }
+.marca-nome { font-size: 24px; font-weight: 700; letter-spacing: -.01em; white-space: nowrap; }
+.a-letra { position: relative; display: inline-block; color: var(--teal); }
+/* Nós do circuito posicionados em em: acompanham o tamanho da letra em qualquer fonte */
+.a-nos { position: absolute; left: -.22em; top: -.43em; width: 1.1em; height: .9em; color: var(--teal); overflow: visible; pointer-events: none; }
+.marca-sub { font-size: 9px; font-weight: 700; letter-spacing: .36em; color: var(--teal); text-align: right; margin-top: 4px; margin-right: -.36em; }
+.topo-acoes { display: flex; gap: 8px; align-items: center; }
+.status-banco { font-size: 12px; opacity: .8; display: flex; align-items: center; gap: 6px; }
+.status-banco::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #facc15; }
+.status-banco.ok::before { background: #4ade80; }
+.status-banco.erro::before { background: #f87171; }
+.btn-topo { background: rgba(255,255,255,.1); border: 0; border-radius: 8px; padding: 6px 10px; color: var(--topo-texto); }
+.btn-topo:hover { background: rgba(255,255,255,.2); }
+
+.pagina { max-width: 1120px; margin: 0 auto; padding: 20px 16px 60px; }
+.faixa-erro { background: var(--ruim-fundo); color: var(--ruim); border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; font-weight: 600; }
+.calculadora { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+@media (max-width: 860px) { .calculadora { grid-template-columns: 1fr; } }
+.painel { background: var(--painel); border: 1px solid var(--borda); border-radius: var(--raio); box-shadow: var(--sombra); padding: 18px 20px; min-width: 0; }
+.linha-entre { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.linha-entre h2 { margin: 0; }
+
+.segmento { display: inline-flex; background: var(--campo); border-radius: 999px; padding: 3px; }
+.segmento button { border: 0; background: transparent; padding: 5px 14px; border-radius: 999px; color: var(--sutil); font-weight: 700; }
+.segmento button.ativo { background: var(--primaria); color: var(--sobre-primaria); }
+.segmento.pequeno button { padding: 3px 10px; font-size: 12px; }
+
+.aviso { background: var(--aviso-fundo); border: 1px solid var(--aviso-borda); color: var(--aviso-texto); border-radius: 8px; padding: 7px 10px; font-size: 12px; margin: 12px 0 0; }
+.aviso.info { background: var(--primaria-suave); border-color: transparent; color: var(--primaria-texto); }
+
+.campo { display: block; margin-top: 14px; }
+.campo > span { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 12px; margin-bottom: 6px; }
+.dica { font-style: normal; width: 15px; height: 15px; border: 1px solid var(--sutil); color: var(--sutil); border-radius: 50%; font-size: 10px; display: inline-grid; place-items: center; cursor: help; }
+.campo input[type=text], .campo textarea, .busca, .nome, .form-config input { width: 100%; border: 1px solid transparent; background: var(--campo); border-radius: 8px; padding: 9px 10px; outline: none; }
+.campo textarea { resize: vertical; }
+.campo input:focus, .campo textarea:focus, .busca:focus, .nome:focus, .entrada-com-prefixo:focus-within, .form-config input:focus { border-color: var(--primaria); background: var(--campo-foco); }
+.entrada-com-prefixo { display: flex; align-items: center; background: var(--campo); border-radius: 8px; border: 1px solid transparent; }
+.entrada-com-prefixo em { font-style: normal; color: var(--sutil); padding: 0 2px 0 10px; font-size: 12px; font-weight: 700; }
+.entrada-com-prefixo input[type=text] { background: transparent !important; border: 0 !important; flex: 1; min-width: 0; }
+.entrada-com-prefixo.curta { width: 96px; flex: none; }
+.entrada-com-prefixo.curta em { padding: 0 10px 0 0; }
+.rotulo-linha { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
+.rotulo { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 12px; }
+.btn-adicionar { border: 1px solid var(--primaria); background: var(--painel); color: var(--primaria); border-radius: 6px; padding: 2px 10px; font-size: 11px; font-weight: 700; }
+.btn-adicionar:hover { background: var(--primaria); color: var(--sobre-primaria); }
+.produtos-lista { display: grid; gap: 6px; }
+.produto-linha { display: flex; align-items: center; gap: 6px; }
+.produto-linha .entrada-com-prefixo { flex: 1; min-width: 0; }
+.produto-num { flex: none; width: 20px; height: 20px; border-radius: 50%; background: var(--primaria); color: var(--sobre-primaria); font-size: 11px; font-weight: 700; display: grid; place-items: center; }
+.remover-produto { flex: none; border: 0; background: transparent; color: var(--ruim); width: 26px; height: 26px; border-radius: 6px; font-size: 15px; }
+.remover-produto:hover { background: var(--ruim-fundo); }
+.produtos-total { margin: 6px 0 0; font-size: 12px; color: var(--sutil); text-align: right; }
+.produtos-total b { color: var(--texto); font-variant-numeric: tabular-nums; }
+.duas-colunas { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 480px) { .rotulo-linha { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
+.rotulo { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 12px; }
+.btn-adicionar { border: 1px solid var(--primaria); background: var(--painel); color: var(--primaria); border-radius: 6px; padding: 2px 10px; font-size: 11px; font-weight: 700; }
+.btn-adicionar:hover { background: var(--primaria); color: var(--sobre-primaria); }
+.produtos-lista { display: grid; gap: 6px; }
+.produto-linha { display: flex; align-items: center; gap: 6px; }
+.produto-linha .entrada-com-prefixo { flex: 1; min-width: 0; }
+.produto-num { flex: none; width: 20px; height: 20px; border-radius: 50%; background: var(--primaria); color: var(--sobre-primaria); font-size: 11px; font-weight: 700; display: grid; place-items: center; }
+.remover-produto { flex: none; border: 0; background: transparent; color: var(--ruim); width: 26px; height: 26px; border-radius: 6px; font-size: 15px; }
+.remover-produto:hover { background: var(--ruim-fundo); }
+.produtos-total { margin: 6px 0 0; font-size: 12px; color: var(--sutil); text-align: right; }
+.produtos-total b { color: var(--texto); font-variant-numeric: tabular-nums; }
+.duas-colunas { grid-template-columns: 1fr; } }
+.qtd { display: flex; align-items: center; gap: 4px; padding-right: 6px; }
+.qtd button { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--borda); background: var(--painel); line-height: 1; }
+.qtd strong { color: var(--primaria-texto); min-width: 30px; text-align: center; }
+
+.extras { margin-top: 14px; border: 1px solid var(--borda); border-radius: 10px; padding: 10px 12px; }
+.extras summary { cursor: pointer; font-weight: 700; font-size: 13px; }
+.extras summary small { color: var(--sutil); font-weight: 400; }
+.extras summary b { color: var(--primaria-texto); }
+.extra-linha { display: grid; grid-template-columns: 1fr 70px 80px 28px; gap: 6px; margin-top: 8px; }
+.extra-linha input, .extra-linha select { background: var(--campo); border: 1px solid transparent; border-radius: 8px; padding: 7px 8px; min-width: 0; }
+.extra-linha button { border: 0; background: transparent; color: var(--ruim); font-size: 16px; }
+.btn-link { background: none; border: 0; color: var(--primaria-texto); font-weight: 700; padding: 6px 0; }
+
+.abas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.abas button { border: 1px solid var(--borda); background: var(--painel); border-radius: 8px; padding: 8px 4px; font-weight: 700; font-size: 12px; color: var(--sutil); }
+.abas button.ativo { border-color: var(--primaria); background: var(--primaria-suave); color: var(--primaria-texto); }
+.slider { display: flex; align-items: center; gap: 12px; }
+.slider input[type=range] { flex: 1; min-width: 0; accent-color: var(--primaria); }
+
+.destaque { position: relative; overflow: hidden; isolation: isolate; background: var(--circuito), linear-gradient(135deg, var(--destaque-a), var(--destaque-b)); color: #fff; border-radius: 12px; padding: 16px; }
+.destaque > .a-marca { position: absolute; right: -14px; bottom: -26px; width: 150px; height: 150px; color: var(--teal); opacity: .13; z-index: -1; pointer-events: none; }
+.destaque small .ponto { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--teal); margin-right: 6px; vertical-align: 1px; box-shadow: 0 0 0 3px rgba(44,197,184,.25); }
+.destaque.negativo { background: var(--circuito), linear-gradient(135deg, var(--neg-a), var(--neg-b)); }
+.destaque small { opacity: .85; text-transform: uppercase; letter-spacing: .06em; font-size: 11px; font-weight: 600; }
+.preco-grande { display: flex; align-items: center; gap: 10px; font-size: clamp(28px, 6vw, 36px); font-weight: 700; margin: 4px 0 12px; letter-spacing: -.02em; }
+.btn-copiar { background: rgba(255,255,255,.16); border: 0; color: #fff; border-radius: 8px; padding: 4px 10px; font-size: 12px; font-weight: 700; letter-spacing: 0; }
+.btn-copiar:hover { background: rgba(255,255,255,.26); }
+.kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.kpis div { background: rgba(255,255,255,.12); border-radius: 8px; padding: 6px 10px; min-width: 0; }
+.kpis small { display: block; text-transform: none; letter-spacing: 0; }
+.kpis strong { font-size: 15px; }
+.erro { color: var(--ruim); background: var(--ruim-fundo); border-radius: 8px; padding: 8px 10px; font-size: 12px; }
+
+.viz { margin-top: 16px; position: relative; }
+.viz-topo { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.viz-topo h3 { margin: 0 0 8px; }
+.viz-topo small { color: var(--sutil); font-size: 11px; }
+/* Barra empilhada: 2px de espaço entre partes, pontas arredondadas, rótulo quando cabe */
+.barra { display: flex; gap: 2px; height: 30px; border-radius: 6px; background: var(--campo); overflow: hidden; }
+.seg { position: relative; height: 100%; min-width: 3px; display: grid; place-items: center; color: #fff; font-size: 11px; font-weight: 700; cursor: default; transition: flex-basis .35s ease, opacity .15s ease; overflow: hidden; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.seg:first-child { border-radius: 6px 0 0 6px; }
+.seg:last-child { border-radius: 0 6px 6px 0; }
+.seg.escuro { color: #1a1a1a; }
+.barra.focando .seg:not(.ativo) { opacity: .3; }
+.detalhe tr { transition: background .15s ease, opacity .15s ease; }
+.detalhe.focando tr[data-grupo]:not(.ativo) { opacity: .45; }
+.detalhe tr.ativo td { background: var(--primaria-suave); }
+.detalhe tr[data-grupo] { cursor: default; }
+.viz-tip { position: absolute; top: -6px; transform: translate(-50%, -100%); background: var(--texto); color: #fff; border-radius: 8px; padding: 6px 10px; font-size: 12px; pointer-events: none; white-space: nowrap; z-index: 3; box-shadow: 0 6px 16px rgba(0,0,0,.2); }
+.viz-tip b { display: block; font-size: 13px; }
+.viz-tip small { opacity: .8; }
+.viz-alerta { margin: 8px 0 0; font-size: 12px; color: var(--ruim); background: var(--ruim-fundo); border-radius: 6px; padding: 6px 10px; }
+
+.simulador { margin-top: 16px; border: 1px solid var(--borda); border-radius: 10px; padding: 12px 14px; background: linear-gradient(180deg, #f8fafc, var(--painel)); }
+.sim-topo { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.sim-topo h3 { margin: 0; }
+.sim-topo .btn-link { font-size: 12px; padding: 0; }
+.sim-numeros { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 10px 0 6px; }
+.sim-numeros div { background: var(--campo); border-radius: 8px; padding: 6px 8px; min-width: 0; }
+.sim-numeros small { display: block; font-size: 10px; color: var(--sutil); text-transform: uppercase; letter-spacing: .04em; }
+.sim-numeros strong { font-size: 14px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sim-numeros .pos { color: var(--bom); } .sim-numeros .neg { color: var(--ruim); }
+@media (max-width: 480px) { .sim-numeros { grid-template-columns: repeat(2, 1fr); } }
+.sim-trilho { position: relative; padding: 4px 0 44px; }
+.sim-trilho input[type=range] { width: 100%; accent-color: var(--primaria); margin: 0; }
+.sim-marcas { position: absolute; left: 8px; right: 8px; top: 22px; height: 26px; }
+.sim-marca { position: absolute; transform: translateX(-50%); display: grid; justify-items: center; gap: 1px; font-size: 10px; color: var(--sutil); white-space: nowrap; }
+.sim-marca i { width: 2px; height: 8px; border-radius: 1px; background: currentColor; }
+.sim-marca.minimo { color: var(--ruim); }
+.sim-marca.baixo b { margin-top: 13px; }
+.sim-marca.calculado { color: var(--primaria); }
+.sim-usar { width: 100%; padding: 8px; font-size: 12px; }
+@media (prefers-reduced-motion: reduce) { .seg, .detalhe tr { transition: none; } }
+.detalhe { width: 100%; border-collapse: collapse; font-size: 13px; }
+.detalhe td { padding: 6px 0; border-bottom: 1px solid var(--borda); }
+.detalhe td:last-child { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; padding-left: 8px; }
+.detalhe .cor { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; }
+.detalhe tr.total td { font-weight: 700; border-bottom: 2px solid var(--texto); }
+.detalhe tr.lucro td { font-weight: 700; font-size: 15px; border: 0; padding-top: 10px; }
+.detalhe .sub { color: var(--sutil); font-size: 11px; font-weight: 500; }
+.pos { color: var(--bom); } .neg { color: var(--ruim); }
+
+.identidade { display: flex; gap: 10px; align-items: center; margin-top: 18px; }
+.nome { font-size: 16px; font-weight: 700; }
+.foto { width: 56px; height: 56px; flex: none; border: 2px dashed var(--primaria); border-radius: 10px; display: grid; place-items: center; cursor: pointer; overflow: hidden; color: var(--primaria-texto); text-align: center; font-size: 11px; font-weight: 700; position: relative; }
+.foto img { width: 100%; height: 100%; object-fit: cover; }
+.remover-foto { font-size: 11px; }
+.tags-entrada { display: flex; flex-wrap: wrap; gap: 6px; background: var(--campo); border-radius: 8px; padding: 6px; border: 1px solid transparent; }
+.tags-entrada:focus-within { border-color: var(--primaria); background: var(--campo-foco); }
+.tags-entrada input::-webkit-calendar-picker-indicator { display: none !important; }
+.tags-entrada input { flex: 1; min-width: 120px; border: 0; background: transparent; padding: 3px 4px; outline: none; }
+.tag { background: var(--primaria-suave); color: var(--primaria-texto); border-radius: 999px; padding: 2px 8px; font-size: 11px; font-weight: 700; display: inline-flex; gap: 4px; align-items: center; }
+.tag button { border: 0; background: none; color: inherit; padding: 0; font-size: 13px; line-height: 1; }
+
+.acoes { display: grid; gap: 8px; margin-top: 16px; }
+.btn { border: 1px solid var(--borda); background: var(--painel); border-radius: 10px; padding: 10px; font-weight: 700; }
+.btn:hover { background: var(--campo); }
+.btn.primario { background: var(--primaria); color: var(--sobre-primaria); border-color: var(--primaria); }
+.btn.primario:hover { background: var(--primaria-forte); }
+.btn:disabled { opacity: .55; cursor: not-allowed; }
+.editando { font-size: 12px; color: var(--sutil); text-align: center; margin: 8px 0 0; }
+
+.salvos { margin-top: 28px; }
+.titulo-salvos { font-size: 17px; text-transform: none; letter-spacing: -.01em; color: var(--texto); font-weight: 700; }
+.titulo-salvos span { color: var(--sutil); font-weight: 600; }
+.filtros { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; font-size: 12px; font-weight: 700; color: var(--sutil); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--borda); background: var(--painel); border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 700; color: var(--sutil); }
+.chip.ativo { background: var(--texto); border-color: var(--texto); color: var(--painel); }
+.chip small { opacity: .7; font-weight: 500; }
+.busca { background: var(--painel); border-color: var(--borda); margin-bottom: 10px; }
+.resumo { font-size: 12px; color: var(--sutil); margin-bottom: 10px; }
+
+.lista { display: grid; gap: 8px; }
+/* Linha compacta: foto | nome, preço e lucro | margem e tags | comentário | ações */
+.item { background: #f1f2f4; border-radius: 6px; display: flex; align-items: stretch; overflow: hidden; box-shadow: 0 2px 5px rgba(13, 35, 68, .22), 0 0 1px rgba(13, 35, 68, .2); min-height: 52px; }
+.item.selecionado { outline: 2px solid var(--primaria); }
+.thumb { width: 46px; height: 46px; aspect-ratio: 1; flex: none; align-self: center; margin-left: 5px; border-radius: 5px; background: var(--primaria); display: grid; place-items: center; overflow: hidden; color: var(--teal); }
+.thumb img { width: 100%; height: 100%; object-fit: cover; }
+.thumb .a-marca { width: 26px; height: 26px; }
+.corpo { flex: 1; min-width: 0; display: flex; align-items: flex-start; flex-wrap: wrap; gap: 2px 8px; padding: 7px 10px 6px; }
+.info { min-width: 0; max-width: 60%; line-height: 1.28; }
+.nome-item { font-weight: 700; font-size: 11.5px; color: var(--texto); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.preco-item { color: var(--teal-escuro); font-weight: 700; font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.lucro-linha { display: flex; align-items: center; flex-wrap: wrap; gap: 3px 10px; }
+.lucro-item { font-size: 11.5px; white-space: nowrap; color: var(--texto); font-variant-numeric: tabular-nums; }
+.lucro-item b { font-weight: 400; }
+.lucro-item b.neg { color: var(--ruim); }
+.lucro-item .kit { color: var(--sutil); }
+.corpo > .margem-txt { padding-top: 1px; }
+.margem-txt { font-weight: 700; font-size: 11.5px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.margem-txt.bom { color: var(--bom); }
+.margem-txt.medio { color: var(--medio); }
+.margem-txt.ruim { color: var(--ruim); }
+.tags-item { display: flex; gap: 4px; flex-wrap: wrap; }
+.tags-item .tag { font-size: 10px; padding: 1px 8px; font-weight: 600; }
+.btn-comentario { border: 0; background: transparent; color: var(--teal-escuro); width: 26px; height: 26px; border-radius: 6px; display: inline-grid; place-items: center; flex: none; margin: 0 0 0 auto; align-self: center; }
+.btn-comentario svg { width: 16px; height: 16px; }
+.btn-comentario:hover, .btn-comentario[aria-expanded="true"] { background: var(--primaria-suave); }
+.comentario-aberto { flex-basis: 100%; font-size: 12px; color: var(--sutil); background: #fff; border-radius: 6px; padding: 5px 8px; margin-top: 4px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.botoes { display: flex; gap: 0; align-items: center; padding: 0 6px; flex: none; }
+.botoes button { border: 0; background: transparent; height: 30px; min-width: 28px; padding: 0 5px; border-radius: 6px; color: var(--texto); display: inline-grid; place-items: center; }
+.botoes button svg { width: 20px; height: 20px; }
+.botoes button:hover { background: #e6e9ee; }
+.botoes button.apagar:hover { color: var(--ruim); }
+.botoes button.confirmar { background: var(--ruim); color: #fff; font-size: 12px; font-weight: 700; }
+.vazio .a-marca { display: block; width: 56px; height: 56px; margin: 0 auto 10px; color: var(--teal-escuro); }
+.vazio { text-align: center; color: var(--sutil); padding: 40px 16px; background: var(--painel); border: 1px dashed var(--borda); border-radius: var(--raio); }
+.segmento.icones button { padding: 5px 10px; display: inline-grid; place-items: center; }
+.segmento.icones svg { width: 16px; height: 16px; }
+
+.lista.grade { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+.lista.grade .item { flex-direction: column; }
+.lista.grade .thumb { width: 100%; height: auto; margin: 0; border-radius: 0; align-self: stretch; }
+.lista.grade .thumb { background: var(--circuito), var(--primaria); }
+.lista.grade .thumb .a-marca { width: 64px; height: 64px; }
+.lista.grade .corpo { align-items: flex-start; flex-direction: column; gap: 6px; }
+.lista.grade .info { max-width: 100%; width: 100%; }
+.lista.grade .btn-comentario { position: absolute; }
+.lista.grade .item { position: relative; }
+.lista.grade .btn-comentario { top: 6px; right: 6px; margin: 0; background: var(--painel); }
+.lista.grade .corpo > .margem-txt { padding-top: 0; }
+.lista.grade .botoes { padding: 0 8px 8px; }
+.lista.grade .comentario-aberto { flex-basis: auto; width: 100%; }
+.lista.grade .nome-item { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+@media (max-width: 600px) {
+  .info { max-width: 100%; flex-basis: 100%; }
+  .nome-item { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .status-banco span { display: none; }
+}
+
+.loja-select { background: rgba(255,255,255,.1); color: var(--topo-texto); border: 1px solid rgba(255,255,255,.18); border-radius: 8px; padding: 6px 8px; font-weight: 700; max-width: 220px; min-width: 0; }
+.loja-select option { color: #14211f; background: #fff; }
+.lojas-lista { list-style: none; padding: 0; margin: 14px 0 0; display: grid; gap: 6px; }
+.lojas-lista li { display: flex; gap: 6px; align-items: center; background: var(--campo); border-radius: 10px; padding: 6px 6px 6px 10px; border: 1px solid transparent; }
+.lojas-lista li.atual { border-color: var(--primaria); }
+.lojas-lista input { flex: 1; min-width: 0; border: 0; background: transparent; font-weight: 700; padding: 6px 2px; outline: none; }
+.lojas-lista input:focus { background: var(--campo-foco); border-radius: 6px; }
+.lojas-lista small { color: var(--primaria-texto); font-weight: 700; font-size: 11px; white-space: nowrap; }
+.lojas-lista button { border: 0; border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 700; background: transparent; color: var(--sutil); white-space: nowrap; }
+.lojas-lista button:hover { background: var(--painel); color: var(--texto); }
+.lojas-lista button.excluir:hover { color: var(--ruim); }
+.lojas-lista button.confirmar { background: var(--ruim); color: #fff; }
+.nova-loja { display: flex; gap: 8px; margin-top: 12px; }
+.nova-loja input { flex: 1; min-width: 0; border: 1px solid transparent; background: var(--campo); border-radius: 8px; padding: 9px 10px; outline: none; }
+.nova-loja input:focus { border-color: var(--primaria); background: var(--campo-foco); }
+.nova-loja .btn { white-space: nowrap; padding: 9px 14px; }
+@media (max-width: 600px) {
+  .topo { flex-wrap: wrap; }
+  .topo-acoes { width: 100%; }
+  .loja-select { flex: 1; max-width: none; }
+}
+.lojas-marca { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 16px; background: var(--circuito), var(--primaria); color: var(--teal); margin-bottom: 12px; }
+.lojas-marca .a-marca { width: 46px; height: 46px; }
+.rodape { max-width: 1120px; margin: 0 auto; padding: 18px 16px 28px; text-align: center; color: var(--teal-escuro); font-size: 13px; }
+.modal { position: fixed; inset: 0; background: rgba(8, 20, 18, .55); display: grid; place-items: center; padding: 16px; z-index: 30; }
+.form-config { background: var(--painel); border-radius: var(--raio); padding: 20px 22px; width: min(420px, 100%); box-shadow: 0 20px 60px rgba(0,0,0,.3); max-height: 90vh; overflow: auto; }
+.form-config h2 { margin-top: 0; font-size: 18px; color: var(--texto); text-transform: none; letter-spacing: 0; }
+.sutil { color: var(--sutil); font-size: 12px; line-height: 1.5; }
+
+.toast { position: fixed; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translate(-50%, 20px); background: var(--texto); color: var(--painel); padding: 10px 16px; border-radius: 10px; opacity: 0; transition: .2s; pointer-events: none; z-index: 40; font-weight: 600; max-width: calc(100% - 32px); }
+.toast.visivel { opacity: 1; transform: translate(-50%, 0); }
+.toast.erro { background: var(--ruim); color: #fff; }
+@media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+</style>
+
+<header class="topo">
+  <div class="marca" role="img" aria-label="Algoritmo Shopee"><span class="marca-nome" aria-hidden="true"><span class="a-letra">A<svg class="a-nos" viewBox="0 0 44 36" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M20.5 26.5 10 15"/><path d="M23.5 26.5 31 11.5"/><path d="M26 31.5h8.5"/><circle cx="7.8" cy="12.6" r="3"/><circle cx="32.6" cy="8.4" r="3"/><circle cx="38" cy="31.5" r="3"/></g></svg></span>lgoritmo</span><span class="marca-sub" aria-hidden="true">SHOPEE</span></div>
+  <div class="topo-acoes">
+    <span class="status-banco" id="status-banco"><span>Conectando…</span></span>
+    <select id="loja-select" class="loja-select" aria-label="Loja atual" disabled><option>Carregando…</option></select>
+    <button class="btn-topo" id="abrir-lojas" type="button">Lojas</button>
+    <button class="btn-topo" id="abrir-config" type="button">Taxas<span class="badge" id="badge-solic" hidden></span></button>
+  </div>
+</header>
+
+<main class="pagina">
+  <p class="faixa-erro" id="faixa-erro" hidden></p>
+  <section class="calculadora">
+    <div class="painel entradas">
+      <div class="linha-entre">
+        <h2>Tipo de vendedor</h2>
+        <div class="segmento" id="tipo-vendedor">
+          <button type="button" data-v="cpf" class="ativo">CPF</button>
+          <button type="button" data-v="cnpj">CNPJ</button>
+        </div>
+      </div>
+      <p class="aviso" id="aviso-cpf"></p>
+
+      <div class="campo">
+        <div class="rotulo-linha">
+          <span class="rotulo">Custo do produto <i class="dica" title="Quanto você paga por unidade. Em kits, use + Adicionar para somar outros produtos.">?</i></span>
+          <button type="button" class="btn-adicionar" id="add-produto">+ Adicionar</button>
+        </div>
+        <div class="produtos-lista" id="produtos-lista"></div>
+        <p class="produtos-total" id="produtos-total" hidden></p>
+      </div>
+
+      <div class="duas-colunas">
+        <label class="campo">
+          <span>Imposto <i class="dica" title="Alíquota sobre o preço de venda (ex.: Simples Nacional).">?</i></span>
+          <div class="entrada-com-prefixo"><em>%</em><input id="impostoPct" type="text" inputmode="decimal" placeholder="0" /></div>
+        </label>
+        <label class="campo">
+          <span>Custos variáveis <i class="dica" title="Embalagem, etiqueta, brinde… por venda.">?</i></span>
+          <div class="entrada-com-prefixo"><em>R$</em><input id="custosVariaveis" type="text" inputmode="decimal" placeholder="0,00" /></div>
+        </label>
+      </div>
+
+      <details class="extras" id="extras-box">
+        <summary>Custos extras <small>(opcional)</small> <b id="extras-contagem"></b></summary>
+        <div id="extras-lista"></div>
+        <button type="button" class="btn-link" id="add-extra">+ Adicionar custo extra</button>
+      </details>
+
+      <h2>Modo de precificação</h2>
+      <div class="abas" id="modo">
+        <button type="button" data-v="margem" class="ativo">Por margem</button>
+        <button type="button" data-v="preco">Por preço de venda</button>
+        <button type="button" data-v="lucro">Por lucro desejado</button>
+      </div>
+
+      <div class="modo-campo" data-modo="margem">
+        <label class="campo">
+          <span>Margem de lucro <i class="dica" title="Percentual do preço de venda que sobra como lucro líquido.">?</i></span>
+          <div class="slider">
+            <input id="margemRange" type="range" min="0" max="60" step="0.5" value="0" aria-label="Margem de lucro" />
+            <div class="entrada-com-prefixo curta"><input id="margemPct" type="text" inputmode="decimal" value="0" /><em>%</em></div>
+          </div>
+        </label>
+      </div>
+      <div class="modo-campo" data-modo="preco" hidden>
+        <label class="campo"><span>Preço de venda</span>
+          <div class="entrada-com-prefixo"><em>R$</em><input id="precoVenda" type="text" inputmode="decimal" placeholder="0,00" /></div>
+        </label>
+      </div>
+      <div class="modo-campo" data-modo="lucro" hidden>
+        <label class="campo"><span>Lucro desejado por venda</span>
+          <div class="entrada-com-prefixo"><em>R$</em><input id="lucroDesejado" type="text" inputmode="decimal" placeholder="0,00" /></div>
+        </label>
+      </div>
+    </div>
+
+    <div class="painel resultado">
+      <div class="destaque" id="destaque">
+        <svg viewBox="0 0 64 64" aria-hidden="true" class="a-marca"><g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M30 18.5 21.5 10.5"/><path d="M34 18.5 40.5 9"/><path d="M38.8 24.5h8.2"/></g><g fill="none" stroke="currentColor" stroke-width="2.6"><circle cx="19" cy="8" r="3.3"/><circle cx="42.3" cy="6.2" r="3.3"/><circle cx="50.6" cy="24.5" r="3.3"/></g><path fill="currentColor" fill-rule="evenodd" d="M28.6 18h6.8l18.6 42H43.5l-3.2-8.4H23.7l-3.2 8.4H10zM32 30.6l-5 13.3h10z"/></svg>
+        <small><span class="ponto"></span><span id="rotulo-preco">Preço para cadastrar na Shopee</span></small>
+        <div class="preco-grande"><span id="preco-final" class="num">R$ 0,00</span>
+          <button class="btn-copiar" id="copiar" type="button">Copiar</button>
+        </div>
+        <div class="kpis">
+          <div><small>Lucro líquido</small><strong id="kpi-lucro" class="num">R$ 0,00</strong></div>
+          <div><small>Margem real</small><strong id="kpi-margem" class="num">0%</strong></div>
+          <div><small>Markup</small><strong id="kpi-markup" class="num">—</strong></div>
+        </div>
+      </div>
+      <p class="erro" id="erro-calculo" hidden></p>
+
+      <div class="viz" id="viz">
+        <div class="viz-topo">
+          <h3>Para onde vai o seu preço</h3>
+          <small id="viz-dica">Passe o mouse em cada parte</small>
+        </div>
+        <div class="barra" id="barra" role="img" aria-label="Composição do preço"></div>
+        <div class="viz-tip" id="viz-tip" role="status" hidden></div>
+        <p class="viz-alerta" id="viz-alerta" hidden></p>
+      </div>
+      <h3>Detalhamento</h3>
+      <table class="detalhe" id="detalhe"></table>
+
+      <section class="simulador" id="simulador" hidden aria-labelledby="sim-titulo">
+        <div class="sim-topo">
+          <h3 id="sim-titulo">E se eu vender por…?</h3>
+          <button type="button" class="btn-link" id="sim-reset">Voltar ao calculado</button>
+        </div>
+        <div class="sim-numeros">
+          <div><small>Preço testado</small><strong id="sim-preco">R$ 0,00</strong></div>
+          <div><small>Lucro</small><strong id="sim-lucro">R$ 0,00</strong></div>
+          <div><small>Margem</small><strong id="sim-margem">0,00%</strong></div>
+          <div><small>Vs. calculado</small><strong id="sim-dif">—</strong></div>
+        </div>
+        <div class="sim-trilho">
+          <input type="range" id="sim-range" min="0" max="100" step="0.01" value="0" aria-label="Preço de venda para testar" />
+          <div class="sim-marcas" aria-hidden="true">
+            <span class="sim-marca minimo" id="sim-marca-min"><i></i><b id="sim-min-txt"></b></span>
+            <span class="sim-marca calculado" id="sim-marca-calc"><i></i><b id="sim-calc-txt"></b></span>
+          </div>
+        </div>
+        <button type="button" class="btn sim-usar" id="sim-usar">Usar este preço</button>
+      </section>
+
+      <div class="identidade">
+        <label class="foto" id="foto" title="Adicionar foto">
+          <input type="file" accept="image/*" id="foto-input" hidden />
+          <img id="foto-preview" alt="" hidden />
+          <span id="foto-placeholder">+ Foto</span>
+        </label>
+        <input id="nome" class="nome" type="text" maxlength="200" placeholder="Nome do anúncio…" aria-label="Nome do anúncio" />
+      </div>
+      <button type="button" class="btn-link remover-foto" id="remover-foto" hidden>Remover foto</button>
+      <label class="campo"><span>Comentário</span>
+        <textarea id="comentario" rows="2" maxlength="2000" placeholder="Anotações sobre este anúncio (opcional)"></textarea>
+      </label>
+      <label class="campo"><span>Tags</span>
+        <div class="tags-entrada" id="tags-entrada">
+          <input id="tag-input" type="text" list="tags-sugestoes" placeholder="Digite e aperte Enter" />
+          <datalist id="tags-sugestoes"></datalist>
+        </div>
+      </label>
+
+      <div class="acoes">
+        <button class="btn primario" id="salvar" type="button">Salvar precificação</button>
+        <button class="btn" id="limpar" type="button">Limpar</button>
+      </div>
+      <p class="editando" id="editando" hidden>Editando <b id="editando-nome"></b> · <button type="button" class="btn-link" id="cancelar-edicao">cancelar</button></p>
+    </div>
+  </section>
+
+  <section class="salvos">
+    <div class="linha-entre">
+      <h2 class="titulo-salvos">Anúncios salvos <span id="total">(0)</span></h2>
+      <div class="segmento icones" id="visao">
+        <button type="button" data-v="lista" class="ativo" title="Lista" aria-label="Ver em lista"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1" fill="currentColor"/><circle cx="4.5" cy="12" r="1" fill="currentColor"/><circle cx="4.5" cy="18" r="1" fill="currentColor"/></svg></button>
+        <button type="button" data-v="grade" title="Grade" aria-label="Ver em grade"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg></button>
+      </div>
+    </div>
+    <div class="filtros">
+      <span>Filtrar por tag:</span>
+      <div class="segmento pequeno" id="modo-tag">
+        <button type="button" data-v="contem" class="ativo" title="Anúncios com todas as tags marcadas (podem ter outras)">Contém</button>
+        <button type="button" data-v="somente" title="Anúncios cujas tags são exatamente as marcadas">Somente</button>
+      </div>
+      <div class="chips" id="chips-tags"></div>
+    </div>
+    <input id="busca" class="busca" type="search" placeholder="Buscar por nome ou comentário…" aria-label="Buscar anúncio" />
+    <div id="resumo" class="resumo"></div>
+    <div id="lista" class="lista"></div>
+  </section>
+</main>
+
+<footer class="rodape">© <span id="ano">2026</span> Algoritmo Assessoria. Todos os direitos reservados</footer>
+
+<div class="modal" id="config" hidden>
+  <form class="form-config" id="form-config">
+    <h2>Taxas da Shopee <small class="config-loja" id="config-loja"></small></h2>
+    <section class="pendentes" id="pendentes" hidden aria-label="Solicitações pendentes"></section>
+    <p class="sutil" id="config-intro">Confira as regras atuais na Central do Vendedor. Novos cálculos usam estes valores, e cada anúncio salvo guarda as taxas que foram usadas nele.</p>
+    <p class="trava" id="config-trava" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span>Só o dono altera as taxas. Proponha os novos valores e envie para aprovação.</span></p>
+    <label class="campo"><span>Comissão + frete (%)</span><input id="cfg-comissaoPct" name="comissaoPct" type="text" inputmode="decimal" /></label>
+    <label class="campo"><span>Teto da comissão por item (R$)</span><input id="cfg-comissaoTeto" name="comissaoTeto" type="text" inputmode="decimal" /></label>
+    <label class="campo"><span>Taxa fixa por item (R$)</span><input id="cfg-taxaFixa" name="taxaFixa" type="text" inputmode="decimal" /></label>
+    <label class="campo"><span>Taxa extra vendedor CPF (R$)</span><input id="cfg-taxaCpf" name="taxaCpf" type="text" inputmode="decimal" /></label>
+    <label class="campo" id="motivo-campo" hidden><span>Motivo da alteração</span><textarea id="cfg-motivo" rows="2" maxlength="300" placeholder="Ex.: a Shopee anunciou taxa fixa de R$ 4,50"></textarea></label>
+    <p class="status-solic" id="status-solic" hidden></p>
+    <div class="acoes">
+      <button class="btn primario" type="submit" id="salvar-taxas">Salvar taxas</button>
+      <button class="btn" type="button" id="fechar-config">Cancelar</button>
+    </div>
+  </form>
+</div>
+
+<div class="modal" id="lojas" hidden>
+  <div class="form-config" role="dialog" aria-labelledby="lojas-titulo">
+    <div class="lojas-marca" id="lojas-marca" hidden><svg viewBox="0 0 64 64" aria-hidden="true" class="a-marca"><g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M30 18.5 21.5 10.5"/><path d="M34 18.5 40.5 9"/><path d="M38.8 24.5h8.2"/></g><g fill="none" stroke="currentColor" stroke-width="2.6"><circle cx="19" cy="8" r="3.3"/><circle cx="42.3" cy="6.2" r="3.3"/><circle cx="50.6" cy="24.5" r="3.3"/></g><path fill="currentColor" fill-rule="evenodd" d="M28.6 18h6.8l18.6 42H43.5l-3.2-8.4H23.7l-3.2 8.4H10zM32 30.6l-5 13.3h10z"/></svg></div>
+    <h2 id="lojas-titulo">Suas lojas</h2>
+    <p class="sutil" id="lojas-intro">Cada loja tem os próprios anúncios, tags e taxas. Clique no nome para renomear.</p>
+    <ul class="lojas-lista" id="lojas-lista"></ul>
+    <form class="nova-loja" id="form-nova-loja">
+      <input id="nova-loja-nome" type="text" maxlength="60" placeholder="Nome da nova loja" aria-label="Nome da nova loja" />
+      <button class="btn primario" type="submit">Criar loja</button>
+    </form>
+    <div class="acoes"><button class="btn" type="button" id="fechar-lojas">Fechar</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/*CALC*/
+</script>
+<script>
+/*APP*/
+</script>
